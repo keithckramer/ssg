@@ -59,7 +59,7 @@ export default function App() {
 
   // Admin: PIN (optional) + session flag
   const [adminPin, setAdminPin] = useState<string | null>(() => load(STORAGE_KEYS.adminPin, null));
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => !!load(STORAGE_KEYS.adminSession, false));
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => !!load(STORAGE_KEYS.adminSession, false)); 
 
   // Simple view routing: 'home' (only matchups) or 'game' (detail page)
   const [view, setView] = useState<'home' | 'game'>(() => load(STORAGE_KEYS.view, 'home'));
