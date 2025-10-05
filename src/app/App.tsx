@@ -1,4 +1,5 @@
 "use client";
+<<<<<<< HEAD
 import React, { useMemo, useState, useEffect } from "react";
 import styles from "./App.module.css";
 import gridStyles from "./GroupGrid.module.css";
@@ -31,198 +32,147 @@ const load = <T,>(key: string, fallback: T): T => {
     return fallback;
   }
 };
+=======
+>>>>>>> main
 
-const STORAGE_KEYS = {
-  matchups: 'ss_matchups',
-  activeId: 'ss_activeId',
-  config: 'ss_config_v2',
-  orders: 'ss_orders_v2',
-  results: 'ss_results_v2',
-  adminPin: 'ss_admin_pin_v1',
-  adminSession: 'ss_admin_session_v1',
-  view: 'ss_view_v1',
-} as const;
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AdminBar } from "../components/admin/AdminBar";
+import { Footer } from "../components/layout/Footer";
+import { Header } from "../components/layout/Header";
+import { Card } from "../components/layout/Card";
+import { AddMatchup } from "../components/matchups/AddMatchup";
+import { MatchupPicker } from "../components/matchups/MatchupPicker";
+import { BuyPanel } from "../components/orders/BuyPanel";
+import { GroupGrid } from "../components/orders/GroupGrid";
+import { ScoreSetter } from "../components/orders/ScoreSetter";
+import { useMatchups } from "../hooks/useMatchups";
+import { useOrders } from "../hooks/useOrders";
+import { load, save, STORAGE_KEYS } from "../lib/storage";
+import { Config, Matchup, OrdersMap, ResultsEntry, ResultsMap } from "../lib/types";
+import { calcTotalsForTest, clampInt, fmtDate, possibleWinnings, toMoney } from "../lib/game";
 
-const SAMPLE_MATCHUPS: Matchup[] = [
-  { id: uid(), home: "Bengals", away: "Steelers", kickoff: "2025-09-07T13:00:00" },
-  { id: uid(), home: "Chiefs", away: "Ravens", kickoff: "2025-09-07T16:25:00" },
-  { id: uid(), home: "49ers", away: "Cowboys", kickoff: "2025-09-08T20:20:00" },
-];
-
-// Config: pot per stick is fixed (label only for now)
 const defaultConfig: Config = {
   potPerStick: 10,
 };
 
-/** Data shape
- * ordersByMatchup: { [matchupId]: Array<Group> }
- * resultsByMatchup: { [matchupId]: ResultsEntry }
- */
-
 export default function App() {
-  const [matchups, setMatchups] = useState<Matchup[]>(() => load(STORAGE_KEYS.matchups, SAMPLE_MATCHUPS));
-  const [activeId, setActiveId] = useState<string | null>(() => load(STORAGE_KEYS.activeId, (matchups[0]?.id ?? null)));
+  const { matchups, activeId, view, activeMatchup, setActiveId, setView, addMatchup, removeMatchup, hydrate: hydrateMatchups, reset: resetMatchups } = useMatchups();
+  const { orders, results, groupsForMatchup, totalsForMatchup, buySticks, setScores, clearScores, clearMatchupData, hydrate: hydrateOrders, reset: resetOrders, winDigitForMatchup } = useOrders();
+
   const [config, setConfig] = useState<Config>(() => load(STORAGE_KEYS.config, defaultConfig));
-  const [orders, setOrders] = useState<OrdersMap>(() => load(STORAGE_KEYS.orders, {})); // groups per matchup
-  const [results, setResults] = useState<ResultsMap>(() => load(STORAGE_KEYS.results, {})); // scores per matchup
-
-  // Admin: PIN (optional) + session flag
   const [adminPin, setAdminPin] = useState<string | null>(() => load(STORAGE_KEYS.adminPin, null));
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => !!load(STORAGE_KEYS.adminSession, false)); 
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => !!load(STORAGE_KEYS.adminSession, false));
 
-  // Simple view routing: 'home' (only matchups) or 'game' (detail page)
-  const [view, setView] = useState<'home' | 'game'>(() => load(STORAGE_KEYS.view, 'home'));
-
-  useEffect(() => save(STORAGE_KEYS.matchups, matchups), [matchups]);
-  useEffect(() => save(STORAGE_KEYS.activeId, activeId), [activeId]);
   useEffect(() => save(STORAGE_KEYS.config, config), [config]);
-  useEffect(() => save(STORAGE_KEYS.orders, orders), [orders]);
-  useEffect(() => save(STORAGE_KEYS.results, results), [results]);
   useEffect(() => save(STORAGE_KEYS.adminPin, adminPin), [adminPin]);
   useEffect(() => save(STORAGE_KEYS.adminSession, isAdmin), [isAdmin]);
-  useEffect(() => save(STORAGE_KEYS.view, view), [view]);
 
-  // Quick runtime sanity checks ("tests") for utilities
+  const activeGroups = useMemo(() => groupsForMatchup(activeId), [groupsForMatchup, activeId]);
+  const totals = useMemo(() => totalsForMatchup(activeId), [totalsForMatchup, activeId]);
+  const winDigit = useMemo(() => winDigitForMatchup(activeId), [winDigitForMatchup, activeId]);
+
   useEffect(() => {
     try {
-      console.assert(clampInt("5", 1, 10) === 5, 'clampInt basic');
-      console.assert(clampInt(99, 1, 10) === 10, 'clampInt upper bound');
-      console.assert(clampInt(-3, 0, 5) === 0, 'clampInt lower bound');
-      console.assert(toMoney('1.239') === 1.24 && toMoney(-5) === 0, 'toMoney rounding + non-negative');
-      console.assert(possibleWinnings(0) === 0 && possibleWinnings(3) === 300, 'possibleWinnings basic');
+      console.assert(clampInt("5", 1, 10) === 5, "clampInt basic");
+      console.assert(clampInt(99, 1, 10) === 10, "clampInt upper bound");
+      console.assert(clampInt(-3, 0, 5) === 0, "clampInt lower bound");
+      console.assert(toMoney("1.239") === 1.24 && toMoney(-5) === 0, "toMoney rounding + non-negative");
+      console.assert(possibleWinnings(0) === 0 && possibleWinnings(3) === 300, "possibleWinnings basic");
       const t = calcTotalsForTest({ groups: 3, sticks: 27, pot: 10 });
-      console.assert(t.groups === 3 && t.totalCharged === 270 && t.possibleW === 300, 'calcTotalsForTest sanity');
+      console.assert(t.groups === 3 && t.totalCharged === 270 && t.possibleW === 300, "calcTotalsForTest sanity");
       const t2 = calcTotalsForTest({ groups: 1, prices: [10, 10] });
-      console.assert(t2.groups === 1 && t2.totalCharged === 20 && t2.possibleW === 100, 'calcTotalsForTest prices array (2×$10)');
+      console.assert(t2.groups === 1 && t2.totalCharged === 20 && t2.possibleW === 100, "calcTotalsForTest prices array (2×$10)");
       const t3 = calcTotalsForTest({ groups: 2, prices: [10, 12] });
-      console.assert(t3.groups === 2 && t3.totalCharged === 22 && t3.possibleW === 200, 'calcTotalsForTest prices array (mixed)');
+      console.assert(t3.groups === 2 && t3.totalCharged === 22 && t3.possibleW === 200, "calcTotalsForTest prices array (mixed)");
       const t4 = calcTotalsForTest({ groups: 0, prices: [] });
+<<<<<<< HEAD
       console.assert(t4.groups === 0 && t4.totalCharged === 0 && t4.possibleW === 0, 'calcTotalsForTest empty');
       const d = fmtDate('2025-01-01T00:00:00Z');
       console.assert(typeof d === 'string' && d.length > 0, 'fmtDate returns string');
     } catch { /* ignore in prod */ }
+=======
+      console.assert(t4.groups === 0 && t4.totalCharged === 0 && t4.possibleW === 0, "calcTotalsForTest empty");
+      const d = fmtDate("2025-01-01T00:00:00Z");
+      console.assert(typeof d === "string" && d.length > 0, "fmtDate returns string");
+    } catch {
+      // ignore in production
+    }
+>>>>>>> main
   }, []);
 
-  const active = useMemo<Matchup | null>(() => matchups.find(m => m.id === activeId) ?? null, [matchups, activeId]);
-  const activeGroups = useMemo<Group[]>(() => (activeId ? (orders[activeId] ?? []) : []), [orders, activeId]);
+  const handleSelectMatchup = useCallback((id: string) => {
+    setActiveId(id);
+    setView("game");
+  }, [setActiveId, setView]);
 
-  // -------------------------- Matchups --------------------------
-  const addMatchup = (home: string, away: string, kickoff: string) => {
-    if (!isAdmin) { alert('Admins only.'); return; }
-    const m: Matchup = { id: uid(), home, away, kickoff };
-    setMatchups(v => [m, ...v]);
-    setActiveId(m.id);
-    setView('game');
-  };
+  const handleAddMatchup = useCallback((home: string, away: string, kickoff: string) => {
+    if (!isAdmin) {
+      alert("Admins only.");
+      return;
+    }
+    addMatchup({ home, away, kickoff });
+  }, [addMatchup, isAdmin]);
 
-  const removeMatchup = (id: string) => {
-    if (!isAdmin) { alert('Admins only.'); return; }
-    setMatchups(prev => {
-      const next = prev.filter(m => m.id !== id);
-      setActiveId(a => (a === id ? (next[0]?.id ?? null) : a));
-      if (id === activeId) setView('home');
-      return next;
-    });
-    setOrders(prev => { const c = { ...prev }; delete c[id]; return c; });
-    setResults(prev => { const c = { ...prev }; delete c[id]; return c; });
-  };
+  const handleRemoveMatchup = useCallback((id: string) => {
+    if (!isAdmin) {
+      alert("Admins only.");
+      return;
+    }
+    removeMatchup(id);
+    clearMatchupData(id);
+  }, [clearMatchupData, isAdmin, removeMatchup]);
 
-  // ---------------------- Buying sticks ----------------------
-  // Assign numbers 0–9 unique within the current group.
-  const buySticks = (buyerName: string, quantity: number) => {
-    if (!active) return;
-    const q = clampInt(quantity, 1, 10); // cap at 10
-    const buyer = (buyerName && buyerName.trim()) || "Guest";
+  const handleBuy = useCallback((buyer: string, quantity: number) => {
+    if (!activeMatchup) return;
+    buySticks({ matchupId: activeMatchup.id, buyer, quantity, pricePerStick: config.potPerStick });
+  }, [activeMatchup, buySticks, config.potPerStick]);
 
-    setOrders(prev => {
-      const matchId = active.id;
-      const groups: Group[] = [...(prev[matchId] ?? [])];
-      const nowIso = new Date().toISOString();
+  const handleSetScores = useCallback((homeScore: number, awayScore: number) => {
+    if (!activeMatchup) return;
+    if (!isAdmin) {
+      alert("Admins only.");
+      return;
+    }
+    setScores(activeMatchup.id, homeScore, awayScore);
+  }, [activeMatchup, isAdmin, setScores]);
 
-      let remaining = q;
-      while (remaining > 0) {
-        if (groups.length === 0 || groups[groups.length - 1].sticks.length >= 10) {
-          groups.push({ id: uid(), sticks: [] });
-        }
-        const g = groups[groups.length - 1];
-        const takenNums = new Set(g.sticks.map(s => s.number));
-        const available = Array.from({ length: 10 }, (_, i) => i).filter(n => !takenNums.has(n));
-        if (available.length === 0) continue; // defensive
+  const handleClearScores = useCallback(() => {
+    if (!activeMatchup) return;
+    if (!isAdmin) {
+      alert("Admins only.");
+      return;
+    }
+    clearScores(activeMatchup.id);
+  }, [activeMatchup, clearScores, isAdmin]);
 
-        const toPlace = Math.min(available.length, remaining);
-        for (let i = 0; i < toPlace; i++) {
-          const nIdx = Math.floor(Math.random() * available.length);
-          const num = available.splice(nIdx, 1)[0];
-          g.sticks.push({
-            id: uid(),
-            buyer,
-            number: num,
-            price: asMoney(config.potPerStick), // stored as number
-            fee: 0, // platform fee disabled for now
-            createdAt: nowIso,
-          });
-          remaining--;
-        }
-      }
-      return { ...prev, [matchId]: groups } as OrdersMap;
-    });
-  };
-
-  // ------------------------- Results -------------------------
-  const setScores = (homeScore: number, awayScore: number) => {
-    if (!active) return;
-    const hs = clampInt(homeScore, 0, Number.MAX_SAFE_INTEGER);
-    const as = clampInt(awayScore, 0, Number.MAX_SAFE_INTEGER);
-    const digit = (hs + as) % 10;
-    setResults(prev => ({ ...prev, [active.id]: { homeScore: hs, awayScore: as, digit } }));
-  };
-
-  const clearScores = () => {
-    if (!active) return;
-    setResults(prev => ({ ...prev, [active.id]: null }));
-  };
-
-  // -------------------------- Totals --------------------------
-  const totals = useMemo(() => {
-    const sticks = activeGroups.reduce((s, g) => s + g.sticks.length, 0);
-    const groups = activeGroups.length;
-    const totalCharged = activeGroups.reduce(
-      (sum, g) => sum + g.sticks.reduce((inner, st) => inner + toNumber(st.price), 0),
-      0
-    );
-    const possibleW = possibleWinnings(groups);
-    return { sticks, groups, totalCharged, possibleW } as const;
-  }, [activeGroups]);
-
-  const winDigit = active ? (results[active.id]?.digit ?? null) : null;
-
-  // --------------------- Backup / Restore ---------------------
-  const exportJson = () => {
+  const exportJson = useCallback(() => {
     const payload = {
       version: 1,
       exportedAt: new Date().toISOString(),
       data: {
         matchups,
         activeId,
+        view,
         config,
         orders,
         results,
         adminPin: !!adminPin,
       },
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `sports-sticks-backup-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  };
+  }, [activeId, adminPin, config, matchups, orders, results, view]);
 
-  const importJson = async (file?: File) => {
+  const importJson = useCallback(async (file?: File) => {
     if (!file) return;
     try {
       const text = await file.text();
+<<<<<<< HEAD
       const raw = JSON.parse(text) as unknown;
       const candidate = (raw as { data?: unknown } | null)?.data ?? raw;
       if (!candidate || typeof candidate !== 'object') throw new Error('Invalid file');
@@ -251,44 +201,89 @@ export default function App() {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       alert('Import failed: ' + (message || 'Unknown error'));
+=======
+      const parsed = JSON.parse(text) as unknown;
+      const root = typeof parsed === "object" && parsed !== null ? parsed : {};
+      const maybeData = (root as { data?: unknown }).data ?? root;
+      if (typeof maybeData !== "object" || maybeData === null) {
+        throw new Error("Invalid file");
+      }
+      const data = maybeData as Record<string, unknown>;
+      const nextMatchups = Array.isArray(data.matchups) ? (data.matchups as Matchup[]) : [];
+      const rawActive = data.activeId;
+      const nextActiveId = typeof rawActive === "string" || rawActive === null ? (rawActive as string | null) : null;
+      const nextView = data.view === "game" ? "game" : "home";
+      hydrateMatchups({
+        matchups: nextMatchups,
+        activeId: nextActiveId,
+        view: nextView,
+      });
+      const nextOrders =
+        data.orders && typeof data.orders === "object" && data.orders !== null ? (data.orders as OrdersMap) : {};
+      const nextResults =
+        data.results && typeof data.results === "object" && data.results !== null ? (data.results as ResultsMap) : {};
+      hydrateOrders({
+        orders: nextOrders,
+        results: nextResults,
+      });
+      const configSource = data.config;
+      const nextConfig: Config =
+        typeof configSource === "object" && configSource !== null
+          ? { potPerStick: Number((configSource as { potPerStick?: unknown }).potPerStick) || defaultConfig.potPerStick }
+          : defaultConfig;
+      setConfig(nextConfig);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      alert("Import failed: " + message);
+>>>>>>> main
     }
-  };
+  }, [hydrateMatchups, hydrateOrders]);
 
-  const resetAll = () => {
-    if (!confirm('Reset ALL local game data? This cannot be undone.')) return;
-    for (const k of Object.values(STORAGE_KEYS)) localStorage.removeItem(k);
-    setMatchups(SAMPLE_MATCHUPS);
-    setActiveId(SAMPLE_MATCHUPS[0].id);
+  const resetAll = useCallback(() => {
+    if (!confirm("Reset ALL local game data? This cannot be undone.")) return;
+    if (typeof window !== "undefined") {
+      Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+    }
+    resetMatchups();
+    resetOrders();
     setConfig(defaultConfig);
-    setOrders({});
-    setResults({});
     setAdminPin(null);
     setIsAdmin(false);
-    setView('home');
-  };
+    setView("home");
+  }, [resetMatchups, resetOrders, setView]);
 
-  // Admin login helpers
-  const handleSetPin = (pin: string) => {
-    if (!pin || pin.length < 4) { alert('Choose a 4+ digit PIN.'); return; }
+  const handleSetPin = useCallback((pin: string) => {
+    if (!pin || pin.length < 4) {
+      alert("Choose a 4+ digit PIN.");
+      return;
+    }
     setAdminPin(String(pin));
     setIsAdmin(true);
-  };
-  const handleLogin = (pin: string) => {
-    if (String(pin) === String(adminPin)) { setIsAdmin(true); }
-    else alert('Wrong PIN');
-  };
-  const handleLogout = () => setIsAdmin(false);
-  const handleClearPin = () => {
-    if (!confirm('Remove the Admin PIN?')) return; setAdminPin(null); setIsAdmin(false);
-  };
+  }, []);
 
-  // ------------------------------ Render ------------------------------
+  const handleLogin = useCallback((pin: string) => {
+    if (String(pin) === String(adminPin)) {
+      setIsAdmin(true);
+    } else {
+      alert("Wrong PIN");
+    }
+  }, [adminPin]);
+
+  const handleLogout = useCallback(() => setIsAdmin(false), []);
+
+  const handleClearPin = useCallback(() => {
+    if (!confirm("Remove the Admin PIN?")) return;
+    setAdminPin(null);
+    setIsAdmin(false);
+  }, []);
+
+  const activeResult: ResultsEntry = activeMatchup ? results[activeMatchup.id] ?? null : null;
+
   return (
     <div className={styles.app}>
       <div className={styles.container}>
         <Header />
 
-        {/* Admin Bar */}
         <AdminBar
           adminPin={adminPin}
           isAdmin={isAdmin}
@@ -298,6 +293,7 @@ export default function App() {
           onClearPin={handleClearPin}
         />
 
+<<<<<<< HEAD
         {/* App Controls */}
         <div className={styles.controlRow}>
           <button className={styles.button} onClick={exportJson}>Export JSON</button>
@@ -308,24 +304,40 @@ export default function App() {
               type="file"
               accept="application/json"
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => importJson(e.target.files?.[0])}
+=======
+        <div className="flex flex-wrap gap-2 mt-4">
+          <button className="btn" onClick={exportJson}>Export JSON</button>
+          <label className="btn-ghost cursor-pointer">
+            Import JSON
+            <input
+              type="file"
+              accept="application/json"
+              style={{ display: "none" }}
+              onChange={(event) => importJson(event.target.files?.[0])}
+>>>>>>> main
             />
           </label>
           <button className={styles.buttonGhost} onClick={resetAll}>Reset Data</button>
         </div>
 
+<<<<<<< HEAD
         {/* ROUTES */}
         {view === 'home' ? (
           <div className={styles.gridHome}>
             {/* Left: Matchup Manager only */}
+=======
+        {view === "home" ? (
+          <div className="grid lg:grid-cols-3 gap-6 mt-6">
+>>>>>>> main
             <Card title="Matchups">
               <MatchupPicker
                 matchups={matchups}
                 activeId={activeId}
-                setActiveId={(id: string) => { setActiveId(id); setView('game'); }}
-                onRemove={isAdmin ? removeMatchup : undefined}
+                onSelect={handleSelectMatchup}
+                onRemove={isAdmin ? handleRemoveMatchup : undefined}
               />
               {isAdmin ? (
-                <AddMatchup onAdd={addMatchup} />
+                <AddMatchup onAdd={handleAddMatchup} />
               ) : (
                 <div className={`${styles.panel} ${styles.textSmall} ${styles.opacity70}`}>
                   Admin required to add a matchup.
@@ -334,6 +346,7 @@ export default function App() {
             </Card>
           </div>
         ) : (
+<<<<<<< HEAD
           // GAME VIEW
           <div className={styles.backSpacer}>
             <div className={styles.gameHeader}>
@@ -364,17 +377,44 @@ export default function App() {
                         <span className={`${styles.textSmall} ${styles.fontSemibold}`}>
                           ${toNumber(config.potPerStick).toFixed(2)}
                         </span>
+=======
+          <div className="mt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <button className="btn-ghost" onClick={() => setView("home")}>← Back to Matchups</button>
+              {activeMatchup ? (
+                <div className="pill">{activeMatchup.home} vs {activeMatchup.away}</div>
+              ) : <span />}
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-6">
+              <Card title="Game & Sticks">
+                {activeMatchup ? (
+                  <div className="space-y-4">
+                    <div className="rounded-xl border p-3 bg-white">
+                      <div className="font-semibold text-lg">{activeMatchup.home} vs {activeMatchup.away}</div>
+                      <div className="text-sm opacity-70">Kickoff: {fmtDate(activeMatchup.kickoff)}</div>
+                    </div>
+
+                    <div className="rounded-xl border p-3 bg-white space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm">Pot per stick</span>
+                        <span className="text-sm font-semibold">${Number(config.potPerStick).toFixed(2)}</span>
+>>>>>>> main
                       </div>
                     </div>
 
-                    {/* Buy flow */}
-                    <BuyPanel onBuy={buySticks} />
+                    <BuyPanel onBuy={handleBuy} />
 
+<<<<<<< HEAD
                     {/* Scores */}
                     <div className={`${styles.panel} ${styles.stackSmall}`}>
                       <div className={styles.fontSemibold}>Final Score → Winning Digit</div>
+=======
+                    <div className="rounded-xl border p-3 bg-white space-y-2">
+                      <div className="font-semibold">Final Score → Winning Digit</div>
+>>>>>>> main
                       {isAdmin ? (
-                        <ScoreSetter active={active} results={results} onSet={setScores} onClear={clearScores} />
+                        <ScoreSetter matchup={activeMatchup} result={activeResult} onSet={handleSetScores} onClear={handleClearScores} />
                       ) : (
                         <div className={`${styles.textSmall} ${styles.opacity70}`}>
                           Admin required to set scores.
@@ -385,10 +425,16 @@ export default function App() {
                       </div>
                     </div>
 
+<<<<<<< HEAD
                     {/* Totals */}
                     <div className={styles.panel}>
                       <div className={styles.sectionTitle}>Totals</div>
                       <ul className={`${styles.list} ${styles.textSmall}`}>
+=======
+                    <div className="rounded-xl border p-3 bg-white">
+                      <div className="font-semibold mb-2">Totals</div>
+                      <ul className="text-sm space-y-1">
+>>>>>>> main
                         <li>Groups: <b>{totals.groups}</b></li>
                         <li>Total charged: <b>${totals.totalCharged.toFixed(2)}</b></li>
                         <li>Possible winnings: <b>${totals.possibleW.toFixed(2)}</b></li>
@@ -400,15 +446,20 @@ export default function App() {
                 )}
               </Card>
 
-              {/* Groups & Results */}
               <Card title="Groups (0–9) & Results">
+<<<<<<< HEAD
                 {active ? (
                   <div className={styles.stackLarge}>
+=======
+                {activeMatchup ? (
+                  <div className="space-y-4">
+>>>>>>> main
                     {activeGroups.length === 0 ? (
                       <div className={`${styles.textSmall} ${styles.opacity70}`}>
                         No sticks yet. Sell some!
                       </div>
                     ) : (
+<<<<<<< HEAD
                       activeGroups.map((g, idx) => (
                         <div key={g.id} className={styles.panel}>
                           <div className={styles.panelHeader}>
@@ -416,8 +467,15 @@ export default function App() {
                             <div className={`${styles.textXs} ${styles.opacity70}`}>
                               {g.sticks.length}/10 filled
                             </div>
+=======
+                      activeGroups.map((group, index) => (
+                        <div key={group.id} className="rounded-xl border p-3 bg-white">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="font-semibold">Group #{index + 1}</div>
+                            <div className="text-xs opacity-70">{group.sticks.length}/10 filled</div>
+>>>>>>> main
                           </div>
-                          <GroupGrid sticks={g.sticks} winDigit={winDigit} />
+                          <GroupGrid sticks={group.sticks} winDigit={winDigit} />
                         </div>
                       ))
                     )}
@@ -432,6 +490,7 @@ export default function App() {
 
         <Footer />
       </div>
+<<<<<<< HEAD
     </div>
   );
 }
@@ -734,3 +793,26 @@ function calcTotalsForTest({ groups, sticks, pot, prices }: { groups: number; st
   const possibleW = possibleWinnings(Number(groups) || 0);
   return { groups: Number(groups) || 0, totalCharged, possibleW } as const;
 }
+=======
+
+      <style>{`
+        .btn { padding: 0.5rem 0.75rem; border-radius: 1rem; background:#0f172a; color:#fff; font-size:0.9rem; box-shadow:0 2px 6px rgba(0,0,0,.12); border: none; cursor:pointer }
+        .btn:hover { opacity:.95 }
+        .btn-ghost { padding: 0.5rem 0.75rem; border-radius: 1rem; background:#fff; color:#0f172a; font-size:0.9rem; box-shadow:0 2px 6px rgba(0,0,0,.06); border:1px solid #e2e8f0; cursor:pointer }
+        .pill { padding: 0.25rem 0.5rem; border-radius: 999px; background:#0f172a; color:#fff; font-size:0.75rem; border:none; cursor:pointer }
+        .pill-ghost { background:#fff; color:#0f172a; border:1px solid #e2e8f0 }
+        .input { padding:0.25rem 0.5rem; border-radius:0.75rem; border:1px solid #e2e8f0; text-align:right }
+        .input-sm { width: 6rem }
+        .input-wide { width: 100% }
+        .slot { padding: 0.25rem 0.5rem; border-radius:0.5rem; border:1px solid #e2e8f0; font-size:0.8rem }
+        .win { background:#d1fae5; border-color:#6ee7b7 }
+        .card { background:#fff; border:1px solid #e2e8f0; border-radius:1rem; padding:1rem; box-shadow:0 2px 8px rgba(0,0,0,.04) }
+        .card h3 { margin:0 0 .5rem 0; font-size:1.05rem }
+        .muted { color:#64748b; font-size:0.9rem }
+        .kckStyle { font: inherit }
+        .kckStyle2 { font: inherit }
+      `}</style>
+    </div>
+  );
+}
+>>>>>>> main
