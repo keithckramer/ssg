@@ -1,4 +1,39 @@
 "use client";
+<<<<<<< HEAD
+import React, { useMemo, useState, useEffect } from "react";
+import styles from "./App.module.css";
+import gridStyles from "./GroupGrid.module.css";
+
+// ----------------------------- Types -----------------------------
+export type Matchup = { id: string; home: string; away: string; kickoff: string };
+export type Stick = { id: string; buyer: string; number: number; price: number; fee: number; createdAt: string };
+export type Group = { id: string; sticks: Stick[] };
+export type OrdersMap = Record<string, Group[]>;
+export type ResultsEntry = { homeScore: number; awayScore: number; digit: number } | null;
+export type ResultsMap = Record<string, ResultsEntry>;
+export type Config = { potPerStick: number };
+
+type BackupData = Partial<{
+  matchups: Matchup[];
+  activeId: string | null;
+  config: Config;
+  orders: OrdersMap;
+  results: ResultsMap;
+}>;
+
+// ----------------------------- Storage Helpers -----------------------------
+const uid = (): string => Math.random().toString(36).slice(2, 9);
+const save = <T,>(key: string, val: T): void => localStorage.setItem(key, JSON.stringify(val));
+const load = <T,>(key: string, fallback: T): T => {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? (JSON.parse(v) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+=======
+>>>>>>> main
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AdminBar } from "../components/admin/AdminBar";
@@ -50,12 +85,19 @@ export default function App() {
       const t3 = calcTotalsForTest({ groups: 2, prices: [10, 12] });
       console.assert(t3.groups === 2 && t3.totalCharged === 22 && t3.possibleW === 200, "calcTotalsForTest prices array (mixed)");
       const t4 = calcTotalsForTest({ groups: 0, prices: [] });
+<<<<<<< HEAD
+      console.assert(t4.groups === 0 && t4.totalCharged === 0 && t4.possibleW === 0, 'calcTotalsForTest empty');
+      const d = fmtDate('2025-01-01T00:00:00Z');
+      console.assert(typeof d === 'string' && d.length > 0, 'fmtDate returns string');
+    } catch { /* ignore in prod */ }
+=======
       console.assert(t4.groups === 0 && t4.totalCharged === 0 && t4.possibleW === 0, "calcTotalsForTest empty");
       const d = fmtDate("2025-01-01T00:00:00Z");
       console.assert(typeof d === "string" && d.length > 0, "fmtDate returns string");
     } catch {
       // ignore in production
     }
+>>>>>>> main
   }, []);
 
   const handleSelectMatchup = useCallback((id: string) => {
@@ -130,6 +172,36 @@ export default function App() {
     if (!file) return;
     try {
       const text = await file.text();
+<<<<<<< HEAD
+      const raw = JSON.parse(text) as unknown;
+      const candidate = (raw as { data?: unknown } | null)?.data ?? raw;
+      if (!candidate || typeof candidate !== 'object') throw new Error('Invalid file');
+      const data = candidate as BackupData;
+      setMatchups(Array.isArray(data.matchups) ? data.matchups : []);
+      setActiveId(
+        typeof data.activeId === 'string' || data.activeId === null
+          ? data.activeId ?? null
+          : null
+      );
+      setConfig(
+        data.config && typeof data.config.potPerStick === 'number'
+          ? { potPerStick: data.config.potPerStick }
+          : defaultConfig
+      );
+      setOrders(
+        data.orders && typeof data.orders === 'object'
+          ? (data.orders as OrdersMap)
+          : {}
+      );
+      setResults(
+        data.results && typeof data.results === 'object'
+          ? (data.results as ResultsMap)
+          : {}
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      alert('Import failed: ' + (message || 'Unknown error'));
+=======
       const parsed = JSON.parse(text) as unknown;
       const root = typeof parsed === "object" && parsed !== null ? parsed : {};
       const maybeData = (root as { data?: unknown }).data ?? root;
@@ -163,6 +235,7 @@ export default function App() {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unknown error";
       alert("Import failed: " + message);
+>>>>>>> main
     }
   }, [hydrateMatchups, hydrateOrders]);
 
@@ -207,8 +280,8 @@ export default function App() {
   const activeResult: ResultsEntry = activeMatchup ? results[activeMatchup.id] ?? null : null;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="max-w-6xl mx-auto p-4 md:p-8">
+    <div className={styles.app}>
+      <div className={styles.container}>
         <Header />
 
         <AdminBar
@@ -220,6 +293,18 @@ export default function App() {
           onClearPin={handleClearPin}
         />
 
+<<<<<<< HEAD
+        {/* App Controls */}
+        <div className={styles.controlRow}>
+          <button className={styles.button} onClick={exportJson}>Export JSON</button>
+          <label className={`${styles.buttonGhost} ${styles.uploadLabel}`}>
+            Import JSON
+            <input
+              className={styles.hiddenInput}
+              type="file"
+              accept="application/json"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => importJson(e.target.files?.[0])}
+=======
         <div className="flex flex-wrap gap-2 mt-4">
           <button className="btn" onClick={exportJson}>Export JSON</button>
           <label className="btn-ghost cursor-pointer">
@@ -229,13 +314,21 @@ export default function App() {
               accept="application/json"
               style={{ display: "none" }}
               onChange={(event) => importJson(event.target.files?.[0])}
+>>>>>>> main
             />
           </label>
-          <button className="btn-ghost" onClick={resetAll}>Reset Data</button>
+          <button className={styles.buttonGhost} onClick={resetAll}>Reset Data</button>
         </div>
 
+<<<<<<< HEAD
+        {/* ROUTES */}
+        {view === 'home' ? (
+          <div className={styles.gridHome}>
+            {/* Left: Matchup Manager only */}
+=======
         {view === "home" ? (
           <div className="grid lg:grid-cols-3 gap-6 mt-6">
+>>>>>>> main
             <Card title="Matchups">
               <MatchupPicker
                 matchups={matchups}
@@ -246,11 +339,45 @@ export default function App() {
               {isAdmin ? (
                 <AddMatchup onAdd={handleAddMatchup} />
               ) : (
-                <div className="rounded-xl border p-3 bg-white text-sm opacity-70">Admin required to add a matchup.</div>
+                <div className={`${styles.panel} ${styles.textSmall} ${styles.opacity70}`}>
+                  Admin required to add a matchup.
+                </div>
               )}
             </Card>
           </div>
         ) : (
+<<<<<<< HEAD
+          // GAME VIEW
+          <div className={styles.backSpacer}>
+            <div className={styles.gameHeader}>
+              <button className={styles.buttonGhost} onClick={() => setView('home')}>
+                ← Back to Matchups
+              </button>
+              {active ? (
+                <div className={styles.pill}>{active.home} vs {active.away}</div>
+              ) : <span />}
+            </div>
+
+            <div className={styles.gridGame}>
+              {/* Game & Sticks */}
+              <Card title="Game & Sticks">
+                {active ? (
+                  <div className={styles.stackLarge}>
+                    <div className={styles.panel}>
+                      <div className={styles.cardInfoTitle}>{active.home} vs {active.away}</div>
+                      <div className={`${styles.textSmall} ${styles.opacity70}`}>
+                        Kickoff: {fmtDate(active.kickoff)}
+                      </div>
+                    </div>
+
+                    {/* Pot per stick: label only */}
+                    <div className={`${styles.panel} ${styles.stackMedium}`}>
+                      <div className={styles.labelRow}>
+                        <span className={styles.textSmall}>Pot per stick</span>
+                        <span className={`${styles.textSmall} ${styles.fontSemibold}`}>
+                          ${toNumber(config.potPerStick).toFixed(2)}
+                        </span>
+=======
           <div className="mt-6 space-y-4">
             <div className="flex items-center justify-between">
               <button className="btn-ghost" onClick={() => setView("home")}>← Back to Matchups</button>
@@ -272,24 +399,42 @@ export default function App() {
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-sm">Pot per stick</span>
                         <span className="text-sm font-semibold">${Number(config.potPerStick).toFixed(2)}</span>
+>>>>>>> main
                       </div>
                     </div>
 
                     <BuyPanel onBuy={handleBuy} />
 
+<<<<<<< HEAD
+                    {/* Scores */}
+                    <div className={`${styles.panel} ${styles.stackSmall}`}>
+                      <div className={styles.fontSemibold}>Final Score → Winning Digit</div>
+=======
                     <div className="rounded-xl border p-3 bg-white space-y-2">
                       <div className="font-semibold">Final Score → Winning Digit</div>
+>>>>>>> main
                       {isAdmin ? (
                         <ScoreSetter matchup={activeMatchup} result={activeResult} onSet={handleSetScores} onClear={handleClearScores} />
                       ) : (
-                        <div className="text-sm opacity-70">Admin required to set scores.</div>
+                        <div className={`${styles.textSmall} ${styles.opacity70}`}>
+                          Admin required to set scores.
+                        </div>
                       )}
-                      <div className="text-sm opacity-70">Winning digit: <b>{winDigit ?? "—"}</b></div>
+                      <div className={`${styles.textSmall} ${styles.opacity70}`}>
+                        Winning digit: <b>{winDigit ?? "—"}</b>
+                      </div>
                     </div>
 
+<<<<<<< HEAD
+                    {/* Totals */}
+                    <div className={styles.panel}>
+                      <div className={styles.sectionTitle}>Totals</div>
+                      <ul className={`${styles.list} ${styles.textSmall}`}>
+=======
                     <div className="rounded-xl border p-3 bg-white">
                       <div className="font-semibold mb-2">Totals</div>
                       <ul className="text-sm space-y-1">
+>>>>>>> main
                         <li>Groups: <b>{totals.groups}</b></li>
                         <li>Total charged: <b>${totals.totalCharged.toFixed(2)}</b></li>
                         <li>Possible winnings: <b>${totals.possibleW.toFixed(2)}</b></li>
@@ -297,21 +442,38 @@ export default function App() {
                     </div>
                   </div>
                 ) : (
-                  <div className="opacity-70">No matchup selected.</div>
+                  <div className={styles.opacity70}>No matchup selected.</div>
                 )}
               </Card>
 
               <Card title="Groups (0–9) & Results">
+<<<<<<< HEAD
+                {active ? (
+                  <div className={styles.stackLarge}>
+=======
                 {activeMatchup ? (
                   <div className="space-y-4">
+>>>>>>> main
                     {activeGroups.length === 0 ? (
-                      <div className="text-sm opacity-70">No sticks yet. Sell some!</div>
+                      <div className={`${styles.textSmall} ${styles.opacity70}`}>
+                        No sticks yet. Sell some!
+                      </div>
                     ) : (
+<<<<<<< HEAD
+                      activeGroups.map((g, idx) => (
+                        <div key={g.id} className={styles.panel}>
+                          <div className={styles.panelHeader}>
+                            <div className={styles.fontSemibold}>Group #{idx + 1}</div>
+                            <div className={`${styles.textXs} ${styles.opacity70}`}>
+                              {g.sticks.length}/10 filled
+                            </div>
+=======
                       activeGroups.map((group, index) => (
                         <div key={group.id} className="rounded-xl border p-3 bg-white">
                           <div className="flex items-center justify-between mb-2">
                             <div className="font-semibold">Group #{index + 1}</div>
                             <div className="text-xs opacity-70">{group.sticks.length}/10 filled</div>
+>>>>>>> main
                           </div>
                           <GroupGrid sticks={group.sticks} winDigit={winDigit} />
                         </div>
@@ -319,7 +481,7 @@ export default function App() {
                     )}
                   </div>
                 ) : (
-                  <div className="opacity-70">Pick a matchup to view sticks and results.</div>
+                  <div className={styles.opacity70}>Pick a matchup to view sticks and results.</div>
                 )}
               </Card>
             </div>
@@ -328,6 +490,310 @@ export default function App() {
 
         <Footer />
       </div>
+<<<<<<< HEAD
+    </div>
+  );
+}
+
+function Header() {
+  return (
+    <div className={styles.header}>
+      <div>
+        <h1 className={styles.headerTitle}>Sports Sticks – Mini MVP</h1>
+        <p className={styles.muted}>Each group holds numbers 0–9. (home+away) % 10 decides the winner.</p>
+      </div>
+    </div>
+  );
+}
+
+type AdminBarProps = {
+  adminPin: string | null;
+  isAdmin: boolean;
+  onSetPin: (pin: string) => void;
+  onLogin: (pin: string) => void;
+  onLogout: () => void;
+  onClearPin: () => void;
+};
+
+function AdminBar({ adminPin, isAdmin, onSetPin, onLogin, onLogout, onClearPin }: AdminBarProps) {
+  const [pinInput, setPinInput] = useState("");
+  const [newPin, setNewPin] = useState("");
+
+  return (
+    <div className={styles.adminBar}>
+      <div className={styles.fontSemibold}>Admin</div>
+      {adminPin ? (
+        <div className={styles.adminSection}>
+          <span className={styles.textSmall}>
+            Status: <b>{isAdmin ? 'Logged in' : 'Logged out'}</b>
+          </span>
+          {isAdmin ? (
+            <>
+              <button className={styles.buttonGhost} onClick={onLogout}>Logout</button>
+              <button className={styles.buttonGhost} onClick={onClearPin}>Remove PIN</button>
+            </>
+          ) : (
+            <>
+              <input
+                className={`${styles.input} ${styles.inputSm}`}
+                placeholder="Enter PIN"
+                value={pinInput}
+                onChange={e => setPinInput(e.target.value.replace(/[^0-9]/g, ''))}
+              />
+              <button
+                className={styles.button}
+                onClick={() => { onLogin(pinInput); setPinInput(""); }}
+              >
+                Login
+              </button>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className={styles.adminSection}>
+          <input
+            className={`${styles.input} ${styles.inputSm}`}
+            placeholder="Set new PIN (4+ digits)"
+            value={newPin}
+            onChange={e => setNewPin(e.target.value.replace(/[^0-9]/g, ''))}
+          />
+          <button
+            className={styles.button}
+            onClick={() => { onSetPin(newPin); setNewPin(""); }}
+          >
+            Set PIN
+          </button>
+          <span className={`${styles.textXs} ${styles.opacity70}`}>
+            (This PIN stays only on this device)
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Footer() {
+  return (
+    <div className={styles.footer}>
+      Built fast. Iterate later with auth, payments, live NFL feeds.
+    </div>
+  );
+}
+
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className={styles.card}>
+      <h3 className={styles.cardTitle}>{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+function MatchupPicker({ matchups, activeId, setActiveId, onRemove }: {
+  matchups: Matchup[];
+  activeId: string | null;
+  setActiveId: (id: string) => void;
+  onRemove?: (id: string) => void;
+}) {
+  return (
+    <div className={styles.matchupPicker}>
+      {matchups.length === 0 ? (
+        <div className={`${styles.textSmall} ${styles.opacity70} ${styles.matchupEmpty}`}>
+          No matchups yet.
+        </div>
+      ) : (
+        <ul className={styles.matchupList}>
+          {matchups.map((m) => (
+            <li key={m.id} className={styles.matchupItem}>
+              <button
+                onClick={() => setActiveId(m.id)}
+                className={`${styles.matchupButton} ${activeId === m.id ? styles.matchupButtonActive : ""}`}
+                title={m.kickoff}
+              >
+                {m.home} vs {m.away}
+                <span className={styles.matchupMeta}>{fmtDate(m.kickoff)}</span>
+              </button>
+              {onRemove ? (
+                <button className={`${styles.pill} ${styles.pillGhost}`} onClick={() => onRemove(m.id)}>
+                  Remove
+                </button>
+              ) : (
+                <span className={`${styles.textMicro} ${styles.opacity50}`}>Admin only</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function AddMatchup({ onAdd }: { onAdd: (home: string, away: string, kickoff: string) => void }) {
+  const [home, setHome] = useState("");
+  const [away, setAway] = useState("");
+  const [kickoff, setKickoff] = useState("");
+
+  return (
+    <div className={styles.addMatchup}>
+      <div className={styles.addMatchupTitle}>Add a matchup</div>
+      <div className={styles.twoColGrid}>
+        <input
+          className={`${styles.input} ${styles.inputLeft}`}
+          placeholder="Home"
+          value={home}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHome(e.target.value)}
+        />
+        <input
+          className={`${styles.input} ${styles.inputLeft}`}
+          placeholder="Away"
+          value={away}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAway(e.target.value)}
+        />
+      </div>
+      <input
+        className={`${styles.input} ${styles.inputWide} ${styles.inputLeft}`}
+        type="datetime-local"
+        value={kickoff}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setKickoff(e.target.value)}
+      />
+      <button className={`${styles.button} ${styles.fullWidth}`} onClick={() => {
+        if (!home || !away) { alert("Enter home & away team names"); return; }
+        onAdd(home.trim(), away.trim(), kickoff || new Date().toISOString());
+        setHome(""); setAway(""); setKickoff("");
+      }}>Add</button>
+    </div>
+  );
+}
+
+function BuyPanel({ onBuy }: { onBuy: (buyer: string, quantity: number) => void }) {
+  const [buyer, setBuyer] = useState("");
+  const [qty, setQty] = useState<number>(1);
+  return (
+    <div className={styles.panel}>
+      <div className={styles.sectionTitle}>Sell sticks</div>
+      <div className={styles.threeColGrid}>
+        <input
+          className={`${styles.input} ${styles.inputLeft} ${styles.buyerName}`}
+          placeholder="Buyer name (optional)"
+          value={buyer}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBuyer(e.target.value)}
+        />
+        <input
+          className={`${styles.input} ${styles.inputSm}`}
+          type="number"
+          min={1}
+          max={10}
+          value={qty}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQty(clampInt(e.target.value, 1, 10))}
+        />
+      </div>
+      <div className={styles.buttonRow}>
+        <button className={`${styles.button} ${styles.flexGrow}`} onClick={() => onBuy(buyer, qty)}>Buy</button>
+        <button className={styles.buttonGhost} onClick={() => { setBuyer(""); setQty(1); }}>Clear</button>
+      </div>
+    </div>
+  );
+}
+
+function ScoreSetter({ active, results, onSet, onClear }: {
+  active: Matchup;
+  results: ResultsMap;
+  onSet: (homeScore: number, awayScore: number) => void;
+  onClear: () => void;
+}) {
+  const r = results[active.id] ?? null;
+  const [hs, setHs] = useState<string | number>(r?.homeScore ?? "");
+  const [as, setAs] = useState<string | number>(r?.awayScore ?? "");
+
+  useEffect(() => { // sync when switching games
+    const rr = results[active.id] ?? null;
+    setHs(rr?.homeScore ?? "");
+    setAs(rr?.awayScore ?? "");
+  }, [active.id, results]);
+
+  return (
+    <div className={styles.threeColGrid}>
+      <input
+        className={`${styles.input} ${styles.inputSm}`}
+        placeholder={`${active.home} score`}
+        value={hs}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHs(e.target.value.replace(/[^0-9]/g, ""))}
+      />
+      <input
+        className={`${styles.input} ${styles.inputSm}`}
+        placeholder={`${active.away} score`}
+        value={as}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAs(e.target.value.replace(/[^0-9]/g, ""))}
+      />
+      <div className={styles.inlineRow}>
+        <button className={styles.button} onClick={() => onSet(Number(hs || 0), Number(as || 0))}>Set</button>
+        <button className={styles.buttonGhost} onClick={onClear}>Clear</button>
+      </div>
+    </div>
+  );
+}
+
+function GroupGrid({ sticks, winDigit }: { sticks: Stick[]; winDigit: number | null }) {
+  const slotMap = new Map(sticks.map(s => [s.number, s] as const));
+  const slots = Array.from({ length: 10 }, (_, i) => ({ num: i, s: slotMap.get(i) || null }));
+  return (
+    <div className={gridStyles.grid}>
+      {slots.map(({ num, s }) => (
+        <div
+          key={num}
+          className={`${gridStyles.slot} ${winDigit !== null && num === winDigit ? gridStyles.win : ""}`}
+          title={s ? `Buyer: ${s.buyer}\nPaid: $${Number(s.price).toFixed(2)}\nAt: ${fmtDate(s.createdAt)}` : ""}
+        >
+          <div className={gridStyles.slotHeader}>#{num}</div>
+          <div className={gridStyles.slotBody}>{s ? s.buyer : "—"}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ----------------------------- Utils -----------------------------
+function fmtDate(iso: string): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" };
+    return d.toLocaleString(undefined, opts);
+  } catch { return iso; }
+}
+
+function toNumber(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function possibleWinnings(groups: number): number { return Math.max(0, Math.floor(Number(groups) || 0)) * 100; }
+
+function toMoney(v: unknown): number {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.round(n * 100) / 100;
+}
+
+function asMoney(n: unknown): number {
+  return Math.round(Number(n || 0) * 100) / 100;
+}
+
+function clampInt(v: number | string, min: number, max: number): number {
+  const n = Math.floor(Number(v));
+  if (!Number.isFinite(n)) return min;
+  return Math.max(min, Math.min(max, n));
+}
+
+// Pure helper for testing totals logic without touching React state
+function calcTotalsForTest({ groups, sticks, pot, prices }: { groups: number; sticks?: number; pot?: number; prices?: number[] }) {
+  const totalCharged = Array.isArray(prices)
+    ? prices.reduce((a, b) => a + (Number(b) || 0), 0)
+    : ((Number(sticks) || 0) * (Number(pot) || 0));
+  const possibleW = possibleWinnings(Number(groups) || 0);
+  return { groups: Number(groups) || 0, totalCharged, possibleW } as const;
+}
+=======
 
       <style>{`
         .btn { padding: 0.5rem 0.75rem; border-radius: 1rem; background:#0f172a; color:#fff; font-size:0.9rem; box-shadow:0 2px 6px rgba(0,0,0,.12); border: none; cursor:pointer }
@@ -349,3 +815,4 @@ export default function App() {
     </div>
   );
 }
+>>>>>>> main

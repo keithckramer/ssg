@@ -1,4 +1,10 @@
 <<<<<<< HEAD
+import App from "./App";
+
+export default function Page() {
+  return <App />;
+=======
+<<<<<<< HEAD
 "use client";
 
 import React, { useState } from "react";
@@ -143,6 +149,7 @@ import AppShell from "./AppShell";
 
 export default function Page() {
   return <AppShell/>;
+>>>>>>> main
 >>>>>>> main
 }
 
