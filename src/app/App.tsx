@@ -1,8 +1,13 @@
 "use client";
 <<<<<<< HEAD
 import React, { useMemo, useState, useEffect } from "react";
+<<<<<<< HEAD
+import { asMoney, clampInt, fmtDate, possibleWinnings, toNumber } from "@/lib/game";
+// NOTE: App.css not used in this sandbox; styles are inlined below.
+=======
 import styles from "./App.module.css";
 import gridStyles from "./GroupGrid.module.css";
+>>>>>>> main
 
 // ----------------------------- Types -----------------------------
 export type Matchup = { id: string; home: string; away: string; kickoff: string };
@@ -67,6 +72,103 @@ export default function App() {
   useEffect(() => save(STORAGE_KEYS.adminPin, adminPin), [adminPin]);
   useEffect(() => save(STORAGE_KEYS.adminSession, isAdmin), [isAdmin]);
 
+<<<<<<< HEAD
+  const active = useMemo<Matchup | null>(() => matchups.find(m => m.id === activeId) ?? null, [matchups, activeId]);
+  const activeGroups = useMemo<Group[]>(() => (activeId ? (orders[activeId] ?? []) : []), [orders, activeId]);
+
+  // -------------------------- Matchups --------------------------
+  const addMatchup = (home: string, away: string, kickoff: string) => {
+    if (!isAdmin) { alert('Admins only.'); return; }
+    const m: Matchup = { id: uid(), home, away, kickoff };
+    setMatchups(v => [m, ...v]);
+    setActiveId(m.id);
+    setView('game');
+  };
+
+  const removeMatchup = (id: string) => {
+    if (!isAdmin) { alert('Admins only.'); return; }
+    setMatchups(prev => {
+      const next = prev.filter(m => m.id !== id);
+      setActiveId(a => (a === id ? (next[0]?.id ?? null) : a));
+      if (id === activeId) setView('home');
+      return next;
+    });
+    setOrders(prev => { const c = { ...prev }; delete c[id]; return c; });
+    setResults(prev => { const c = { ...prev }; delete c[id]; return c; });
+  };
+
+  // ---------------------- Buying sticks ----------------------
+  // Assign numbers 0–9 unique within the current group.
+  const buySticks = (buyerName: string, quantity: number) => {
+    if (!active) return;
+    const q = clampInt(quantity, 1, 10); // cap at 10
+    const buyer = (buyerName && buyerName.trim()) || "Guest";
+
+    setOrders(prev => {
+      const matchId = active.id;
+      const groups: Group[] = [...(prev[matchId] ?? [])];
+      const nowIso = new Date().toISOString();
+
+      let remaining = q;
+      while (remaining > 0) {
+        if (groups.length === 0 || groups[groups.length - 1].sticks.length >= 10) {
+          groups.push({ id: uid(), sticks: [] });
+        }
+        const g = groups[groups.length - 1];
+        const takenNums = new Set(g.sticks.map(s => s.number));
+        const available = Array.from({ length: 10 }, (_, i) => i).filter(n => !takenNums.has(n));
+        if (available.length === 0) continue; // defensive
+
+        const toPlace = Math.min(available.length, remaining);
+        for (let i = 0; i < toPlace; i++) {
+          const nIdx = Math.floor(Math.random() * available.length);
+          const num = available.splice(nIdx, 1)[0];
+          g.sticks.push({
+            id: uid(),
+            buyer,
+            number: num,
+            price: asMoney(config.potPerStick), // stored as number
+            fee: 0, // platform fee disabled for now
+            createdAt: nowIso,
+          });
+          remaining--;
+        }
+      }
+      return { ...prev, [matchId]: groups } as OrdersMap;
+    });
+  };
+
+  // ------------------------- Results -------------------------
+  const setScores = (homeScore: number, awayScore: number) => {
+    if (!active) return;
+    const hs = clampInt(homeScore, 0, Number.MAX_SAFE_INTEGER);
+    const as = clampInt(awayScore, 0, Number.MAX_SAFE_INTEGER);
+    const digit = (hs + as) % 10;
+    setResults(prev => ({ ...prev, [active.id]: { homeScore: hs, awayScore: as, digit } }));
+  };
+
+  const clearScores = () => {
+    if (!active) return;
+    setResults(prev => ({ ...prev, [active.id]: null }));
+  };
+
+  // -------------------------- Totals --------------------------
+  const totals = useMemo(() => {
+    const sticks = activeGroups.reduce((s, g) => s + g.sticks.length, 0);
+    const groups = activeGroups.length;
+    const totalCharged = activeGroups.reduce(
+      (sum, g) => sum + g.sticks.reduce((inner, st) => inner + toNumber(st.price), 0),
+      0
+    );
+    const possibleW = possibleWinnings(groups);
+    return { sticks, groups, totalCharged, possibleW } as const;
+  }, [activeGroups]);
+
+  const winDigit = active ? (results[active.id]?.digit ?? null) : null;
+
+  // --------------------- Backup / Restore ---------------------
+  const exportJson = () => {
+=======
   const activeGroups = useMemo(() => groupsForMatchup(activeId), [groupsForMatchup, activeId]);
   const totals = useMemo(() => totalsForMatchup(activeId), [totalsForMatchup, activeId]);
   const winDigit = useMemo(() => winDigitForMatchup(activeId), [winDigitForMatchup, activeId]);
@@ -146,6 +248,7 @@ export default function App() {
   }, [activeMatchup, clearScores, isAdmin]);
 
   const exportJson = useCallback(() => {
+>>>>>>> main
     const payload = {
       version: 1,
       exportedAt: new Date().toISOString(),
@@ -752,6 +855,8 @@ function GroupGrid({ sticks, winDigit }: { sticks: Stick[]; winDigit: number | n
   );
 }
 
+<<<<<<< HEAD
+=======
 // ----------------------------- Utils -----------------------------
 function fmtDate(iso: string): string {
   if (!iso) return "";
@@ -815,4 +920,5 @@ function calcTotalsForTest({ groups, sticks, pot, prices }: { groups: number; st
     </div>
   );
 }
+>>>>>>> main
 >>>>>>> main

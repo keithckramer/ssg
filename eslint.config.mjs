@@ -10,7 +10,13 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...compat.extends(
+    "next/core-web-vitals",
+    "next/typescript",
+    "plugin:testing-library/react",
+    "plugin:jest-dom/recommended",
+    "prettier",
+  ),
   {
     ignores: [
       "node_modules/**",
@@ -19,6 +25,18 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
     ],
+  },
+  {
+    files: ["**/__tests__/**/*.{ts,tsx}", "**/*.test.{ts,tsx}"],
+    languageOptions: {
+      globals: {
+        vi: "readonly",
+        describe: "readonly",
+        it: "readonly",
+        test: "readonly",
+        expect: "readonly",
+      },
+    },
   },
 ];
 

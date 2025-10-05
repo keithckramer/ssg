@@ -1,5 +1,8 @@
+<<<<<<< HEAD
+=======
 import { Group, Stick } from "./types";
 
+>>>>>>> main
 export function fmtDate(iso: string): string {
   if (!iso) return "";
   try {
@@ -31,8 +34,13 @@ export function toMoney(v: unknown): number {
   return Math.round(n * 100) / 100;
 }
 
+<<<<<<< HEAD
+export function asMoney(n: unknown): number {
+  return Math.round(Number(n || 0) * 100) / 100;
+=======
 export function asMoney(v: unknown): number {
   return Math.round(Number(v || 0) * 100) / 100;
+>>>>>>> main
 }
 
 export function clampInt(v: number | string, min: number, max: number): number {
@@ -58,6 +66,8 @@ export function calcTotalsForTest({
   const possibleW = possibleWinnings(Number(groups) || 0);
   return { groups: Number(groups) || 0, totalCharged, possibleW } as const;
 }
+<<<<<<< HEAD
+=======
 
 export function buildGroupSlots(sticks: Stick[]): { num: number; stick: Stick | null }[] {
   const slotMap = new Map(sticks.map((s) => [s.number, s] as const));
@@ -78,3 +88,4 @@ export function countStickTotals(groups: Group[]): {
   const possibleW = possibleWinnings(groups.length);
   return { groups: groups.length, sticks, totalCharged, possibleW };
 }
+>>>>>>> main
