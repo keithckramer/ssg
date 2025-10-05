@@ -1,6 +1,7 @@
 "use client";
 import React, { useMemo, useState, useEffect } from "react";
-// NOTE: App.css not used in this sandbox; styles are inlined below.
+import styles from "./App.module.css";
+import gridStyles from "./GroupGrid.module.css";
 
 // ----------------------------- Types -----------------------------
 export type Matchup = { id: string; home: string; away: string; kickoff: string };
@@ -10,6 +11,14 @@ export type OrdersMap = Record<string, Group[]>;
 export type ResultsEntry = { homeScore: number; awayScore: number; digit: number } | null;
 export type ResultsMap = Record<string, ResultsEntry>;
 export type Config = { potPerStick: number };
+
+type BackupData = Partial<{
+  matchups: Matchup[];
+  activeId: string | null;
+  config: Config;
+  orders: OrdersMap;
+  results: ResultsMap;
+}>;
 
 // ----------------------------- Storage Helpers -----------------------------
 const uid = (): string => Math.random().toString(36).slice(2, 9);
@@ -91,7 +100,7 @@ export default function App() {
       console.assert(t4.groups === 0 && t4.totalCharged === 0 && t4.possibleW === 0, 'calcTotalsForTest empty');
       const d = fmtDate('2025-01-01T00:00:00Z');
       console.assert(typeof d === 'string' && d.length > 0, 'fmtDate returns string');
-    } catch (e) { /* ignore in prod */ }
+    } catch { /* ignore in prod */ }
   }, []);
 
   const active = useMemo<Matchup | null>(() => matchups.find(m => m.id === activeId) ?? null, [matchups, activeId]);
@@ -214,16 +223,34 @@ export default function App() {
     if (!file) return;
     try {
       const text = await file.text();
-      const parsed = JSON.parse(text) as any;
-      const d = parsed?.data ?? parsed; // accept either wrapper or raw
-      if (!d) throw new Error('Invalid file');
-      setMatchups(Array.isArray(d.matchups) ? (d.matchups as Matchup[]) : []);
-      setActiveId((d.activeId as string | null) ?? null);
-      setConfig((d.config as Config) ?? defaultConfig);
-      setOrders((d.orders as OrdersMap) ?? {});
-      setResults((d.results as ResultsMap) ?? {});
-    } catch (e: any) {
-      alert('Import failed: ' + (e?.message || 'Unknown error'));
+      const raw = JSON.parse(text) as unknown;
+      const candidate = (raw as { data?: unknown } | null)?.data ?? raw;
+      if (!candidate || typeof candidate !== 'object') throw new Error('Invalid file');
+      const data = candidate as BackupData;
+      setMatchups(Array.isArray(data.matchups) ? data.matchups : []);
+      setActiveId(
+        typeof data.activeId === 'string' || data.activeId === null
+          ? data.activeId ?? null
+          : null
+      );
+      setConfig(
+        data.config && typeof data.config.potPerStick === 'number'
+          ? { potPerStick: data.config.potPerStick }
+          : defaultConfig
+      );
+      setOrders(
+        data.orders && typeof data.orders === 'object'
+          ? (data.orders as OrdersMap)
+          : {}
+      );
+      setResults(
+        data.results && typeof data.results === 'object'
+          ? (data.results as ResultsMap)
+          : {}
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      alert('Import failed: ' + (message || 'Unknown error'));
     }
   };
 
@@ -257,8 +284,8 @@ export default function App() {
 
   // ------------------------------ Render ------------------------------
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="max-w-6xl mx-auto p-4 md:p-8">
+    <div className={styles.app}>
+      <div className={styles.container}>
         <Header />
 
         {/* Admin Bar */}
@@ -272,19 +299,23 @@ export default function App() {
         />
 
         {/* App Controls */}
-        <div className="flex flex-wrap gap-2 mt-4">
-          <button className="btn" onClick={exportJson}>Export JSON</button>
-          <label className="btn-ghost cursor-pointer">
+        <div className={styles.controlRow}>
+          <button className={styles.button} onClick={exportJson}>Export JSON</button>
+          <label className={`${styles.buttonGhost} ${styles.uploadLabel}`}>
             Import JSON
-            <input type="file" accept="application/json" style={{ display: 'none' }}
-                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => importJson(e.target.files?.[0])} />
+            <input
+              className={styles.hiddenInput}
+              type="file"
+              accept="application/json"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => importJson(e.target.files?.[0])}
+            />
           </label>
-          <button className="btn-ghost" onClick={resetAll}>Reset Data</button>
+          <button className={styles.buttonGhost} onClick={resetAll}>Reset Data</button>
         </div>
 
         {/* ROUTES */}
         {view === 'home' ? (
-          <div className="grid lg:grid-cols-3 gap-6 mt-6">
+          <div className={styles.gridHome}>
             {/* Left: Matchup Manager only */}
             <Card title="Matchups">
               <MatchupPicker
@@ -296,35 +327,43 @@ export default function App() {
               {isAdmin ? (
                 <AddMatchup onAdd={addMatchup} />
               ) : (
-                <div className="rounded-xl border p-3 bg-white text-sm opacity-70">Admin required to add a matchup.</div>
+                <div className={`${styles.panel} ${styles.textSmall} ${styles.opacity70}`}>
+                  Admin required to add a matchup.
+                </div>
               )}
             </Card>
           </div>
         ) : (
           // GAME VIEW
-          <div className="mt-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <button className="btn-ghost" onClick={() => setView('home')}>← Back to Matchups</button>
+          <div className={styles.backSpacer}>
+            <div className={styles.gameHeader}>
+              <button className={styles.buttonGhost} onClick={() => setView('home')}>
+                ← Back to Matchups
+              </button>
               {active ? (
-                <div className="pill">{active.home} vs {active.away}</div>
+                <div className={styles.pill}>{active.home} vs {active.away}</div>
               ) : <span />}
             </div>
 
-            <div className="grid lg:grid-cols-2 gap-6">
+            <div className={styles.gridGame}>
               {/* Game & Sticks */}
               <Card title="Game & Sticks">
                 {active ? (
-                  <div className="space-y-4">
-                    <div className="rounded-xl border p-3 bg-white">
-                      <div className="font-semibold text-lg">{active.home} vs {active.away}</div>
-                      <div className="text-sm opacity-70">Kickoff: {fmtDate(active.kickoff)}</div>
+                  <div className={styles.stackLarge}>
+                    <div className={styles.panel}>
+                      <div className={styles.cardInfoTitle}>{active.home} vs {active.away}</div>
+                      <div className={`${styles.textSmall} ${styles.opacity70}`}>
+                        Kickoff: {fmtDate(active.kickoff)}
+                      </div>
                     </div>
 
                     {/* Pot per stick: label only */}
-                    <div className="rounded-xl border p-3 bg-white space-y-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm">Pot per stick</span>
-                        <span className="text-sm font-semibold">${toNumber(config.potPerStick).toFixed(2)}</span>
+                    <div className={`${styles.panel} ${styles.stackMedium}`}>
+                      <div className={styles.labelRow}>
+                        <span className={styles.textSmall}>Pot per stick</span>
+                        <span className={`${styles.textSmall} ${styles.fontSemibold}`}>
+                          ${toNumber(config.potPerStick).toFixed(2)}
+                        </span>
                       </div>
                     </div>
 
@@ -332,20 +371,24 @@ export default function App() {
                     <BuyPanel onBuy={buySticks} />
 
                     {/* Scores */}
-                    <div className="rounded-xl border p-3 bg-white space-y-2">
-                      <div className="font-semibold">Final Score → Winning Digit</div>
+                    <div className={`${styles.panel} ${styles.stackSmall}`}>
+                      <div className={styles.fontSemibold}>Final Score → Winning Digit</div>
                       {isAdmin ? (
                         <ScoreSetter active={active} results={results} onSet={setScores} onClear={clearScores} />
                       ) : (
-                        <div className="text-sm opacity-70">Admin required to set scores.</div>
+                        <div className={`${styles.textSmall} ${styles.opacity70}`}>
+                          Admin required to set scores.
+                        </div>
                       )}
-                      <div className="text-sm opacity-70">Winning digit: <b>{winDigit ?? "—"}</b></div>
+                      <div className={`${styles.textSmall} ${styles.opacity70}`}>
+                        Winning digit: <b>{winDigit ?? "—"}</b>
+                      </div>
                     </div>
 
                     {/* Totals */}
-                    <div className="rounded-xl border p-3 bg-white">
-                      <div className="font-semibold mb-2">Totals</div>
-                      <ul className="text-sm space-y-1">
+                    <div className={styles.panel}>
+                      <div className={styles.sectionTitle}>Totals</div>
+                      <ul className={`${styles.list} ${styles.textSmall}`}>
                         <li>Groups: <b>{totals.groups}</b></li>
                         <li>Total charged: <b>${totals.totalCharged.toFixed(2)}</b></li>
                         <li>Possible winnings: <b>${totals.possibleW.toFixed(2)}</b></li>
@@ -353,22 +396,26 @@ export default function App() {
                     </div>
                   </div>
                 ) : (
-                  <div className="opacity-70">No matchup selected.</div>
+                  <div className={styles.opacity70}>No matchup selected.</div>
                 )}
               </Card>
 
               {/* Groups & Results */}
               <Card title="Groups (0–9) & Results">
                 {active ? (
-                  <div className="space-y-4">
+                  <div className={styles.stackLarge}>
                     {activeGroups.length === 0 ? (
-                      <div className="text-sm opacity-70">No sticks yet. Sell some!</div>
+                      <div className={`${styles.textSmall} ${styles.opacity70}`}>
+                        No sticks yet. Sell some!
+                      </div>
                     ) : (
                       activeGroups.map((g, idx) => (
-                        <div key={g.id} className="rounded-xl border p-3 bg-white">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="font-semibold">Group #{idx + 1}</div>
-                            <div className="text-xs opacity-70">{g.sticks.length}/10 filled</div>
+                        <div key={g.id} className={styles.panel}>
+                          <div className={styles.panelHeader}>
+                            <div className={styles.fontSemibold}>Group #{idx + 1}</div>
+                            <div className={`${styles.textXs} ${styles.opacity70}`}>
+                              {g.sticks.length}/10 filled
+                            </div>
                           </div>
                           <GroupGrid sticks={g.sticks} winDigit={winDigit} />
                         </div>
@@ -376,7 +423,7 @@ export default function App() {
                     )}
                   </div>
                 ) : (
-                  <div className="opacity-70">Pick a matchup to view sticks and results.</div>
+                  <div className={styles.opacity70}>Pick a matchup to view sticks and results.</div>
                 )}
               </Card>
             </div>
@@ -385,35 +432,16 @@ export default function App() {
 
         <Footer />
       </div>
-
-      {/* Styles */}
-      <style>{`
-        .btn { padding: 0.5rem 0.75rem; border-radius: 1rem; background:#0f172a; color:#fff; font-size:0.9rem; box-shadow:0 2px 6px rgba(0,0,0,.12); border: none; cursor:pointer }
-        .btn:hover { opacity:.95 }
-        .btn-ghost { padding: 0.5rem 0.75rem; border-radius: 1rem; background:#fff; color:#0f172a; font-size:0.9rem; box-shadow:0 2px 6px rgba(0,0,0,.06); border:1px solid #e2e8f0; cursor:pointer }
-        .pill { padding: 0.25rem 0.5rem; border-radius: 999px; background:#0f172a; color:#fff; font-size:0.75rem; border:none; cursor:pointer }
-        .pill-ghost { background:#fff; color:#0f172a; border:1px solid #e2e8f0 }
-        .input { padding:0.25rem 0.5rem; border-radius:0.75rem; border:1px solid #e2e8f0; text-align:right }
-        .input-sm { width: 6rem }
-        .input-wide { width: 100% }
-        .slot { padding: 0.25rem 0.5rem; border-radius:0.5rem; border:1px solid #e2e8f0; font-size:0.8rem }
-        .win { background:#d1fae5; border-color:#6ee7b7 }
-        .card { background:#fff; border:1px solid #e2e8f0; border-radius:1rem; padding:1rem; box-shadow:0 2px 8px rgba(0,0,0,.04) }
-        .card h3 { margin:0 0 .5rem 0; font-size:1.05rem }
-        .muted { color:#64748b; font-size:0.9rem }
-        .kckStyle { font: inherit }
-        .kckStyle2 { font: inherit }
-      `}</style>
     </div>
   );
 }
 
 function Header() {
   return (
-    <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-6">
+    <div className={styles.header}>
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold">Sports Sticks – Mini MVP</h1>
-        <p className="muted">Each group holds numbers 0–9. (home+away) % 10 decides the winner.</p>
+        <h1 className={styles.headerTitle}>Sports Sticks – Mini MVP</h1>
+        <p className={styles.muted}>Each group holds numbers 0–9. (home+away) % 10 decides the winner.</p>
       </div>
     </div>
   );
@@ -433,30 +461,52 @@ function AdminBar({ adminPin, isAdmin, onSetPin, onLogin, onLogout, onClearPin }
   const [newPin, setNewPin] = useState("");
 
   return (
-    <div className="mt-3 rounded-xl border p-3 bg-white flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-      <div className="font-semibold">Admin</div>
+    <div className={styles.adminBar}>
+      <div className={styles.fontSemibold}>Admin</div>
       {adminPin ? (
-        <div className="flex gap-2 items-center flex-wrap">
-          <span className="text-sm">Status: <b>{isAdmin ? 'Logged in' : 'Logged out'}</b></span>
+        <div className={styles.adminSection}>
+          <span className={styles.textSmall}>
+            Status: <b>{isAdmin ? 'Logged in' : 'Logged out'}</b>
+          </span>
           {isAdmin ? (
             <>
-              <button className="btn-ghost" onClick={onLogout}>Logout</button>
-              <button className="btn-ghost" onClick={onClearPin}>Remove PIN</button>
+              <button className={styles.buttonGhost} onClick={onLogout}>Logout</button>
+              <button className={styles.buttonGhost} onClick={onClearPin}>Remove PIN</button>
             </>
           ) : (
             <>
-              <input className="input input-sm" placeholder="Enter PIN" value={pinInput}
-                     onChange={e => setPinInput(e.target.value.replace(/[^0-9]/g, ''))} />
-              <button className="btn" onClick={() => { onLogin(pinInput); setPinInput(""); }}>Login</button>
+              <input
+                className={`${styles.input} ${styles.inputSm}`}
+                placeholder="Enter PIN"
+                value={pinInput}
+                onChange={e => setPinInput(e.target.value.replace(/[^0-9]/g, ''))}
+              />
+              <button
+                className={styles.button}
+                onClick={() => { onLogin(pinInput); setPinInput(""); }}
+              >
+                Login
+              </button>
             </>
           )}
         </div>
       ) : (
-        <div className="flex gap-2 items-center flex-wrap">
-          <input className="input input-sm" placeholder="Set new PIN (4+ digits)" value={newPin}
-                 onChange={e => setNewPin(e.target.value.replace(/[^0-9]/g, ''))} />
-          <button className="btn" onClick={() => { onSetPin(newPin); setNewPin(""); }}>Set PIN</button>
-          <span className="text-xs opacity-70">(This PIN stays only on this device)</span>
+        <div className={styles.adminSection}>
+          <input
+            className={`${styles.input} ${styles.inputSm}`}
+            placeholder="Set new PIN (4+ digits)"
+            value={newPin}
+            onChange={e => setNewPin(e.target.value.replace(/[^0-9]/g, ''))}
+          />
+          <button
+            className={styles.button}
+            onClick={() => { onSetPin(newPin); setNewPin(""); }}
+          >
+            Set PIN
+          </button>
+          <span className={`${styles.textXs} ${styles.opacity70}`}>
+            (This PIN stays only on this device)
+          </span>
         </div>
       )}
     </div>
@@ -465,7 +515,7 @@ function AdminBar({ adminPin, isAdmin, onSetPin, onLogin, onLogout, onClearPin }
 
 function Footer() {
   return (
-    <div className="mt-8 text-center text-xs text-slate-500">
+    <div className={styles.footer}>
       Built fast. Iterate later with auth, payments, live NFL feeds.
     </div>
   );
@@ -473,8 +523,8 @@ function Footer() {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="card">
-      <h3 className="font-semibold">{title}</h3>
+    <div className={styles.card}>
+      <h3 className={styles.cardTitle}>{title}</h3>
       {children}
     </div>
   );
@@ -487,23 +537,29 @@ function MatchupPicker({ matchups, activeId, setActiveId, onRemove }: {
   onRemove?: (id: string) => void;
 }) {
   return (
-    <div className="rounded-xl border p-2 bg-white mb-3 max-h-[240px] overflow-auto">
+    <div className={styles.matchupPicker}>
       {matchups.length === 0 ? (
-        <div className="text-sm opacity-70 p-2">No matchups yet.</div>
+        <div className={`${styles.textSmall} ${styles.opacity70} ${styles.matchupEmpty}`}>
+          No matchups yet.
+        </div>
       ) : (
-        <ul className="space-y-1">
+        <ul className={styles.matchupList}>
           {matchups.map((m) => (
-            <li key={m.id} className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-slate-50">
-              <button onClick={() => setActiveId(m.id)}
-                className={"kckStyle text-sm text-left flex-1 " + (activeId === m.id ? "font-semibold" : "")}
-                title={m.kickoff}>
+            <li key={m.id} className={styles.matchupItem}>
+              <button
+                onClick={() => setActiveId(m.id)}
+                className={`${styles.matchupButton} ${activeId === m.id ? styles.matchupButtonActive : ""}`}
+                title={m.kickoff}
+              >
                 {m.home} vs {m.away}
-                <span className="block text-[11px] opacity-60">{fmtDate(m.kickoff)}</span>
+                <span className={styles.matchupMeta}>{fmtDate(m.kickoff)}</span>
               </button>
               {onRemove ? (
-                <button className="kckStyle pill pill-ghost" onClick={() => onRemove(m.id)}>Remove</button>
+                <button className={`${styles.pill} ${styles.pillGhost}`} onClick={() => onRemove(m.id)}>
+                  Remove
+                </button>
               ) : (
-                <span className="text-[11px] opacity-50">Admin only</span>
+                <span className={`${styles.textMicro} ${styles.opacity50}`}>Admin only</span>
               )}
             </li>
           ))}
@@ -519,14 +575,29 @@ function AddMatchup({ onAdd }: { onAdd: (home: string, away: string, kickoff: st
   const [kickoff, setKickoff] = useState("");
 
   return (
-    <div className="rounded-xl border p-3 bg-white space-y-2">
-      <div className="kckStyle2 text-sm font-medium">Add a matchup</div>
-      <div className="grid grid-cols-2 gap-2">
-        <input className="kckStyle input text-left" placeholder="Home" value={home} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHome(e.target.value)} />
-        <input className="kckStyle input text-left" placeholder="Away" value={away} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAway(e.target.value)} />
+    <div className={styles.addMatchup}>
+      <div className={styles.addMatchupTitle}>Add a matchup</div>
+      <div className={styles.twoColGrid}>
+        <input
+          className={`${styles.input} ${styles.inputLeft}`}
+          placeholder="Home"
+          value={home}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHome(e.target.value)}
+        />
+        <input
+          className={`${styles.input} ${styles.inputLeft}`}
+          placeholder="Away"
+          value={away}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAway(e.target.value)}
+        />
       </div>
-      <input className="input input-wide text-left" type="datetime-local" value={kickoff} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setKickoff(e.target.value)} />
-      <button className="btn w-full" onClick={() => {
+      <input
+        className={`${styles.input} ${styles.inputWide} ${styles.inputLeft}`}
+        type="datetime-local"
+        value={kickoff}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setKickoff(e.target.value)}
+      />
+      <button className={`${styles.button} ${styles.fullWidth}`} onClick={() => {
         if (!home || !away) { alert("Enter home & away team names"); return; }
         onAdd(home.trim(), away.trim(), kickoff || new Date().toISOString());
         setHome(""); setAway(""); setKickoff("");
@@ -539,17 +610,27 @@ function BuyPanel({ onBuy }: { onBuy: (buyer: string, quantity: number) => void 
   const [buyer, setBuyer] = useState("");
   const [qty, setQty] = useState<number>(1);
   return (
-    <div className="rounded-xl border p-3 bg-white">
-      <div className="font-semibold mb-2">Sell sticks</div>
-      <div className="grid grid-cols-3 gap-2 items-center">
-        <input className="input col-span-2 text-left" placeholder="Buyer name (optional)" value={buyer}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBuyer(e.target.value)} />
-        <input className="input input-sm" type="number" min={1} max={10} value={qty}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQty(clampInt(e.target.value, 1, 10))} />
+    <div className={styles.panel}>
+      <div className={styles.sectionTitle}>Sell sticks</div>
+      <div className={styles.threeColGrid}>
+        <input
+          className={`${styles.input} ${styles.inputLeft} ${styles.buyerName}`}
+          placeholder="Buyer name (optional)"
+          value={buyer}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBuyer(e.target.value)}
+        />
+        <input
+          className={`${styles.input} ${styles.inputSm}`}
+          type="number"
+          min={1}
+          max={10}
+          value={qty}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQty(clampInt(e.target.value, 1, 10))}
+        />
       </div>
-      <div className="flex gap-2 mt-2">
-        <button className="btn flex-1" onClick={() => onBuy(buyer, qty)}>Buy</button>
-        <button className="btn-ghost" onClick={() => { setBuyer(""); setQty(1); }}>Clear</button>
+      <div className={styles.buttonRow}>
+        <button className={`${styles.button} ${styles.flexGrow}`} onClick={() => onBuy(buyer, qty)}>Buy</button>
+        <button className={styles.buttonGhost} onClick={() => { setBuyer(""); setQty(1); }}>Clear</button>
       </div>
     </div>
   );
@@ -572,14 +653,22 @@ function ScoreSetter({ active, results, onSet, onClear }: {
   }, [active.id, results]);
 
   return (
-    <div className="grid grid-cols-3 gap-2 items-center">
-      <input className="input input-sm" placeholder={`${active.home} score`} value={hs}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHs(e.target.value.replace(/[^0-9]/g, ""))} />
-      <input className="input input-sm" placeholder={`${active.away} score`} value={as}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAs(e.target.value.replace(/[^0-9]/g, ""))} />
-      <div className="flex gap-2">
-        <button className="btn" onClick={() => onSet(Number(hs||0), Number(as||0))}>Set</button>
-        <button className="btn-ghost" onClick={onClear}>Clear</button>
+    <div className={styles.threeColGrid}>
+      <input
+        className={`${styles.input} ${styles.inputSm}`}
+        placeholder={`${active.home} score`}
+        value={hs}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHs(e.target.value.replace(/[^0-9]/g, ""))}
+      />
+      <input
+        className={`${styles.input} ${styles.inputSm}`}
+        placeholder={`${active.away} score`}
+        value={as}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAs(e.target.value.replace(/[^0-9]/g, ""))}
+      />
+      <div className={styles.inlineRow}>
+        <button className={styles.button} onClick={() => onSet(Number(hs || 0), Number(as || 0))}>Set</button>
+        <button className={styles.buttonGhost} onClick={onClear}>Clear</button>
       </div>
     </div>
   );
@@ -589,15 +678,15 @@ function GroupGrid({ sticks, winDigit }: { sticks: Stick[]; winDigit: number | n
   const slotMap = new Map(sticks.map(s => [s.number, s] as const));
   const slots = Array.from({ length: 10 }, (_, i) => ({ num: i, s: slotMap.get(i) || null }));
   return (
-    <div className="grid grid-cols-5 gap-2">
+    <div className={gridStyles.grid}>
       {slots.map(({ num, s }) => (
         <div
           key={num}
-          className={"slot " + (winDigit !== null && num === winDigit ? "win" : "")}
+          className={`${gridStyles.slot} ${winDigit !== null && num === winDigit ? gridStyles.win : ""}`}
           title={s ? `Buyer: ${s.buyer}\nPaid: $${Number(s.price).toFixed(2)}\nAt: ${fmtDate(s.createdAt)}` : ""}
         >
-          <div className="text-[11px] opacity-60">#{num}</div>
-          <div className="text-sm">{s ? s.buyer : "—"}</div>
+          <div className={gridStyles.slotHeader}>#{num}</div>
+          <div className={gridStyles.slotBody}>{s ? s.buyer : "—"}</div>
         </div>
       ))}
     </div>

@@ -1,0 +1,28 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.slot {
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  font-size: 0.9rem;
+  background: #ffffff;
+  transition: border-color 0.2s ease-in-out, background 0.2s ease-in-out;
+}
+
+.slotHeader {
+  font-size: 0.68rem;
+  opacity: 0.6;
+}
+
+.slotBody {
+  font-size: 0.9rem;
+}
+
+.win {
+  background: #d1fae5;
+  border-color: #6ee7b7;
+}
