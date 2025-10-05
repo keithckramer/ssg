@@ -1,9 +1,7 @@
-import Image from "next/image";
-import styles from "./page.module.css";
-import App from "./App";
+import AppShell from "./AppShell";
 
 export default function Page() {
-  return <App/>;
+  return <AppShell/>;
 }
 
 // export default function Home() {
