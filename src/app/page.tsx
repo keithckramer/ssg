@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 "use client";
 
 import React, { useState } from "react";
@@ -137,6 +138,12 @@ function AddMatchup({ onAdd }: { onAdd: (home: string, away: string, kickoff: st
       </button>
     </div>
   );
+=======
+import AppShell from "./AppShell";
+
+export default function Page() {
+  return <AppShell/>;
+>>>>>>> main
 }
 
 // export default function Home() {
