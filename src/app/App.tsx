@@ -1,5 +1,6 @@
 "use client";
 import React, { useMemo, useState, useEffect } from "react";
+import { asMoney, clampInt, fmtDate, possibleWinnings, toNumber } from "@/lib/game";
 // NOTE: App.css not used in this sandbox; styles are inlined below.
 
 // ----------------------------- Types -----------------------------
@@ -72,27 +73,6 @@ export default function App() {
   useEffect(() => save(STORAGE_KEYS.adminPin, adminPin), [adminPin]);
   useEffect(() => save(STORAGE_KEYS.adminSession, isAdmin), [isAdmin]);
   useEffect(() => save(STORAGE_KEYS.view, view), [view]);
-
-  // Quick runtime sanity checks ("tests") for utilities
-  useEffect(() => {
-    try {
-      console.assert(clampInt("5", 1, 10) === 5, 'clampInt basic');
-      console.assert(clampInt(99, 1, 10) === 10, 'clampInt upper bound');
-      console.assert(clampInt(-3, 0, 5) === 0, 'clampInt lower bound');
-      console.assert(toMoney('1.239') === 1.24 && toMoney(-5) === 0, 'toMoney rounding + non-negative');
-      console.assert(possibleWinnings(0) === 0 && possibleWinnings(3) === 300, 'possibleWinnings basic');
-      const t = calcTotalsForTest({ groups: 3, sticks: 27, pot: 10 });
-      console.assert(t.groups === 3 && t.totalCharged === 270 && t.possibleW === 300, 'calcTotalsForTest sanity');
-      const t2 = calcTotalsForTest({ groups: 1, prices: [10, 10] });
-      console.assert(t2.groups === 1 && t2.totalCharged === 20 && t2.possibleW === 100, 'calcTotalsForTest prices array (2×$10)');
-      const t3 = calcTotalsForTest({ groups: 2, prices: [10, 12] });
-      console.assert(t3.groups === 2 && t3.totalCharged === 22 && t3.possibleW === 200, 'calcTotalsForTest prices array (mixed)');
-      const t4 = calcTotalsForTest({ groups: 0, prices: [] });
-      console.assert(t4.groups === 0 && t4.totalCharged === 0 && t4.possibleW === 0, 'calcTotalsForTest empty');
-      const d = fmtDate('2025-01-01T00:00:00Z');
-      console.assert(typeof d === 'string' && d.length > 0, 'fmtDate returns string');
-    } catch (e) { /* ignore in prod */ }
-  }, []);
 
   const active = useMemo<Matchup | null>(() => matchups.find(m => m.id === activeId) ?? null, [matchups, activeId]);
   const activeGroups = useMemo<Group[]>(() => (activeId ? (orders[activeId] ?? []) : []), [orders, activeId]);
@@ -604,44 +584,3 @@ function GroupGrid({ sticks, winDigit }: { sticks: Stick[]; winDigit: number | n
   );
 }
 
-// ----------------------------- Utils -----------------------------
-function fmtDate(iso: string): string {
-  if (!iso) return "";
-  try {
-    const d = new Date(iso);
-    const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" };
-    return d.toLocaleString(undefined, opts);
-  } catch { return iso; }
-}
-
-function toNumber(v: unknown): number {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function possibleWinnings(groups: number): number { return Math.max(0, Math.floor(Number(groups) || 0)) * 100; }
-
-function toMoney(v: unknown): number {
-  const n = Number(v);
-  if (!Number.isFinite(n) || n < 0) return 0;
-  return Math.round(n * 100) / 100;
-}
-
-function asMoney(n: unknown): number {
-  return Math.round(Number(n || 0) * 100) / 100;
-}
-
-function clampInt(v: number | string, min: number, max: number): number {
-  const n = Math.floor(Number(v));
-  if (!Number.isFinite(n)) return min;
-  return Math.max(min, Math.min(max, n));
-}
-
-// Pure helper for testing totals logic without touching React state
-function calcTotalsForTest({ groups, sticks, pot, prices }: { groups: number; sticks?: number; pot?: number; prices?: number[] }) {
-  const totalCharged = Array.isArray(prices)
-    ? prices.reduce((a, b) => a + (Number(b) || 0), 0)
-    : ((Number(sticks) || 0) * (Number(pot) || 0));
-  const possibleW = possibleWinnings(Number(groups) || 0);
-  return { groups: Number(groups) || 0, totalCharged, possibleW } as const;
-}
