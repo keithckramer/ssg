@@ -68,6 +68,10 @@ const defaultConfig: Config = {
   potPerStick: 10,
 };
 
+type BuyStickOptions = {
+  separateBoards?: boolean;
+};
+
 type SportsSticksContextValue = {
   matchups: Matchup[];
   config: Config;
@@ -79,7 +83,7 @@ type SportsSticksContextValue = {
   setLastMatchupId: (id: string | null) => void;
   addMatchup: (home: string, away: string, kickoff: string) => string;
   removeMatchup: (id: string) => void;
-  buySticks: (matchupId: string, buyer: string, quantity: number) => void;
+  buySticks: (matchupId: string, buyer: string, quantity: number, options?: BuyStickOptions) => void;
   setScores: (matchupId: string, homeScore: number, awayScore: number) => void;
   clearScores: (matchupId: string) => void;
   exportJson: () => void;
@@ -165,28 +169,25 @@ export function SportsSticksProvider({ children }: { children: React.ReactNode }
     setLastMatchupId((current) => (current === id ? null : current));
   }, []);
 
-  const buySticks = useCallback((matchupId: string, buyerName: string, quantity: number) => {
+  const buySticks = useCallback((matchupId: string, buyerName: string, quantity: number, options?: BuyStickOptions) => {
     setOrders((prev) => {
       const groups: Group[] = [...(prev[matchupId] ?? [])];
       const nowIso = new Date().toISOString();
       const q = clampInt(quantity, 1, 10);
       const buyer = (buyerName && buyerName.trim()) || "Guest";
+      const separateBoards = !!options?.separateBoards;
+      const usedGroups = new Set<string>();
       let remaining = q;
       while (remaining > 0) {
-        if (groups.length === 0 || groups[groups.length - 1].sticks.length >= 10) {
-          groups.push({ id: uid(), sticks: [] });
-        }
-        const g = groups[groups.length - 1];
-        const takenNums = new Set(g.sticks.map((s) => s.number));
-        const available = Array.from({ length: 10 }, (_, i) => i).filter((n) => !takenNums.has(n));
-        if (!available.length) {
-          break;
-        }
-        const toPlace = Math.min(available.length, remaining);
-        for (let i = 0; i < toPlace; i += 1) {
-          const nIdx = Math.floor(Math.random() * available.length);
-          const num = available.splice(nIdx, 1)[0];
-          g.sticks.push({
+        const insertIntoGroup = (group: Group) => {
+          const takenNums = new Set(group.sticks.map((s) => s.number));
+          const available = Array.from({ length: 10 }, (_, i) => i).filter((n) => !takenNums.has(n));
+          if (!available.length) {
+            return false;
+          }
+          const index = Math.floor(Math.random() * available.length);
+          const num = available.splice(index, 1)[0];
+          group.sticks.push({
             id: uid(),
             buyer,
             number: num,
@@ -194,6 +195,44 @@ export function SportsSticksProvider({ children }: { children: React.ReactNode }
             fee: 0,
             createdAt: nowIso,
           });
+          return true;
+        };
+
+        const findOrCreateGroup = () => {
+          if (separateBoards) {
+            const existing = groups.find((g) => g.sticks.length < 10 && !usedGroups.has(g.id));
+            if (existing) {
+              usedGroups.add(existing.id);
+              return existing;
+            }
+            const created = { id: uid(), sticks: [] } as Group;
+            groups.push(created);
+            usedGroups.add(created.id);
+            return created;
+          }
+
+          let last = groups[groups.length - 1];
+          if (!last || last.sticks.length >= 10) {
+            last = { id: uid(), sticks: [] } as Group;
+            groups.push(last);
+          }
+          return last;
+        };
+
+        const target = findOrCreateGroup();
+        const placed = insertIntoGroup(target);
+
+        if (!placed) {
+          if (separateBoards) {
+            usedGroups.add(target.id);
+            continue;
+          }
+
+          const fallback = groups.find((g) => g.sticks.length < 10);
+          if (!fallback || !insertIntoGroup(fallback)) {
+            break;
+          }
+        } else {
           remaining -= 1;
         }
       }
