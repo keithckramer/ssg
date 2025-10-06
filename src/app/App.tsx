@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { useRouter } from "next/navigation";
 import SiteShell, { Card } from "@/components/layout/SiteShell";
 import { AddMatchup } from "@/components/matchups/AddMatchup";
 import { MatchupPicker } from "@/components/matchups/MatchupPicker";
@@ -11,12 +12,14 @@ import {
 } from "@/components/providers/SportsSticksProvider";
 
 function AppContent() {
+  const router = useRouter();
   const { matchups, addMatchup, removeMatchup, lastMatchupId, setLastMatchupId, isAdmin } = useSportsSticks();
   const { ensureAdmin } = useAdminGuard();
 
   const handleSelect = useCallback((id: string) => {
     setLastMatchupId(id);
-  }, [setLastMatchupId]);
+    router.push(`/game/${id}`);
+  }, [router, setLastMatchupId]);
 
   const handleRemove = useCallback((id: string) => {
     if (!ensureAdmin()) return;
@@ -46,14 +49,6 @@ function AppContent() {
               Admin required to add a matchup.
             </div>
           )}
-          {lastMatchupId ? (
-            <div className="mt-3 rounded-xl border p-3 bg-white text-sm flex flex-col gap-2">
-              <span className="opacity-70">Selected matchup actions</span>
-              <a className="btn" href={`/game/${lastMatchupId}`}>
-                Open game view
-              </a>
-            </div>
-          ) : null}
         </Card>
       </div>
     </SiteShell>
