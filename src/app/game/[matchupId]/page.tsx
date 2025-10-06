@@ -90,12 +90,12 @@ export default function MatchupDetailPage() {
           <Card title="Game & Sticks">
             <div className="space-y-4">
               <div className="rounded-xl border p-3 bg-white">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div className="flex md:flex-row md:items-center md:justify-between gap-3">
                   <div>
                     <div className="font-semibold text-lg">{matchup.home} vs {matchup.away}</div>
                     <div className="text-sm opacity-70">Kickoff: {fmtDate(matchup.kickoff)}</div>
                   </div>
-                  <button className="btn" onClick={() => setIsBuyOpen(true)}>Buy sticks</button>
+                  <button style={{width:"130px"}} className="btn" onClick={() => setIsBuyOpen(true)}>Buy sticks</button>
                 </div>
               </div>
               <div className="rounded-xl border p-3 bg-white space-y-2">

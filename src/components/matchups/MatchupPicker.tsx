@@ -12,7 +12,7 @@ type MatchupPickerProps = {
 
 export function MatchupPicker({ matchups, activeId, onSelect, onRemove }: MatchupPickerProps) {
   return (
-    <div className="rounded-xl border p-2 bg-white mb-3 max-h-[240px] overflow-auto">
+    <div className="rounded-xl border p-2 bg-white mb-3 max-h-[240px] overflow-auto"> 
       {matchups.length === 0 ? (
         <div className="text-sm opacity-70 p-2">No matchups yet.</div>
       ) : (
