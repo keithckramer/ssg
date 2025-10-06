@@ -302,7 +302,7 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, totals, onBuy }: 
         </div>
         <div className="rounded-xl border p-3 bg-white">
           <div className="font-semibold mb-2">Summary</div>
-          <ul className="text-sm space-y-1">
+          <ul style={{listStyleType:'none'}}className="text-sm space-y-1">
             <li>Boards: <b>{totals.groups}</b></li>
             <li>Total charged: <b>${totals.totalCharged.toFixed(2)}</b></li>
             <li>Possible winnings: <b>${totals.possibleW.toFixed(2)}</b></li>
