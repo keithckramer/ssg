@@ -12,7 +12,6 @@ import {
   fmtDate,
   possibleWinnings,
   toMoney,
-  clampInt,
   useAdminGuard,
   useSportsSticks,
 } from "@/components/providers/SportsSticksProvider";
@@ -191,6 +190,21 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, totals, onBuy }: 
 
   const price = toMoney(pricePerStick);
   const totalAmount = toMoney(price * qty);
+  const stepperButtonStyle = (isDisabled: boolean): React.CSSProperties => ({
+    width: "2.25rem",
+    height: "2.25rem",
+    borderRadius: "0.65rem",
+    border: "1px solid #e2e8f0",
+    background: isDisabled ? "#f1f5f9" : "#fff",
+    fontSize: "1.25rem",
+    lineHeight: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: isDisabled ? "not-allowed" : "pointer",
+    color: "#0f172a",
+    fontWeight: 600,
+  });
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -209,7 +223,7 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, totals, onBuy }: 
       <form className="modal-panel space-y-4" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
         <button type="button" className="modal-close" onClick={onClose} aria-label="Close buy sticks modal">×</button>
         <div>
-          <h2 id="buy-modal-title" className="text-lg font-semibold">Buy sticks</h2>
+          <h2 id="buy-modal-title" className="text-lg font-semibold">Buy Sticks</h2>
           <div className="text-sm opacity-70 mt-1">
             {matchup.home} vs {matchup.away} • Kickoff: {fmtDate(matchup.kickoff)}
           </div>
@@ -219,31 +233,59 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, totals, onBuy }: 
           <div className="text-lg font-semibold mt-1">${price.toFixed(2)}</div>
         </div>
         <div className="rounded-xl border p-3 bg-white space-y-3">
-          <div className="font-semibold">Sell sticks</div>
           <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="buy-buyer">Buyer name (optional)</label>
+            <label className="text-sm font-medium" htmlFor="buy-buyer">
+              Name <span aria-hidden="true" style={{ color: "#dc2626" }}>*</span>
+            </label>
             <input
               id="buy-buyer"
               className="input input-wide text-left"
-              placeholder="Buyer name (optional)"
+              placeholder="Enter buyer name"
               value={buyer}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBuyer(e.target.value)}
               autoFocus
+              required
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="buy-qty">How many sticks?</label>
-            <div className="flex items-center gap-2">
-              <input
-                id="buy-qty"
-                className="input input-sm"
-                type="number"
-                min={1}
-                max={10}
-                inputMode="numeric"
-                value={qty}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQty(clampInt(e.target.value, 1, 10))}
-              />
+            <span id="buy-qty-label" className="text-sm font-medium">
+              Number of sticks
+            </span>
+            <div className="flex items-center gap-3" role="group" aria-labelledby="buy-qty-label">
+              <div
+                className="flex items-center gap-2"
+                style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "0.75rem",
+                  padding: "0.25rem",
+                  background: "#fff",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setQty((current) => Math.max(1, current - 1))}
+                  aria-label="Decrease number of sticks"
+                  disabled={qty <= 1}
+                  style={stepperButtonStyle(qty <= 1)}
+                >
+                  −
+                </button>
+                <span
+                  className="text-lg font-semibold"
+                  style={{ minWidth: "2.5rem", textAlign: "center" }}
+                >
+                  {qty}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQty((current) => Math.min(10, current + 1))}
+                  aria-label="Increase number of sticks"
+                  disabled={qty >= 10}
+                  style={stepperButtonStyle(qty >= 10)}
+                >
+                  +
+                </button>
+              </div>
               <span className="text-sm opacity-70">× ${price.toFixed(2)}</span>
             </div>
           </div>
@@ -259,7 +301,7 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, totals, onBuy }: 
           ) : null}
         </div>
         <div className="rounded-xl border p-3 bg-white">
-          <div className="font-semibold mb-2">Totals</div>
+          <div className="font-semibold mb-2">Summary</div>
           <ul className="text-sm space-y-1">
             <li>Boards: <b>{totals.groups}</b></li>
             <li>Total charged: <b>${totals.totalCharged.toFixed(2)}</b></li>
