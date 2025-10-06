@@ -50,11 +50,13 @@ export default function MatchupDetailPage() {
 
   const groups = useMemo(() => ((orders as OrdersMap)[matchup.id] ?? []), [matchup.id, orders]);
   const totals = useMemo(() => computeTotals(groups), [groups]);
+  const [isBuyOpen, setIsBuyOpen] = useState(false);
+  const pricePerStick = toMoney(config.potPerStick);
   const resultEntry = (results as ResultsMap)[matchup.id] ?? null;
   const winDigit = resultEntry?.digit ?? null;
 
-  const handleBuy = (buyer: string, qty: number) => {
-    buySticks(matchup.id, buyer, qty);
+  const handleBuy = (buyer: string, qty: number, separateBoards: boolean) => {
+    buySticks(matchup.id, buyer, qty, { separateBoards });
   };
 
   const handleSetScores = (homeScore: number, awayScore: number) => {
@@ -69,6 +71,16 @@ export default function MatchupDetailPage() {
 
   return (
     <SiteShell>
+      <BuyFlowModal
+        open={isBuyOpen}
+        onClose={() => setIsBuyOpen(false)}
+        matchup={matchup}
+        pricePerStick={pricePerStick}
+        totals={totals}
+        onBuy={(buyerName, quantity, separateBoards) => {
+          handleBuy(buyerName, quantity, separateBoards);
+        }}
+      />
       <div className="mt-6 space-y-4">
         <div className="flex items-center justify-between">
           <button className="btn-ghost" onClick={() => router.push("/")}>← Back to Matchups</button>
@@ -78,16 +90,14 @@ export default function MatchupDetailPage() {
           <Card title="Game & Sticks">
             <div className="space-y-4">
               <div className="rounded-xl border p-3 bg-white">
-                <div className="font-semibold text-lg">{matchup.home} vs {matchup.away}</div>
-                <div className="text-sm opacity-70">Kickoff: {fmtDate(matchup.kickoff)}</div>
-              </div>
-              <div className="rounded-xl border p-3 bg-white space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm">Pot per stick</span>
-                  <span className="text-sm font-semibold">${toMoney(config.potPerStick).toFixed(2)}</span>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div>
+                    <div className="font-semibold text-lg">{matchup.home} vs {matchup.away}</div>
+                    <div className="text-sm opacity-70">Kickoff: {fmtDate(matchup.kickoff)}</div>
+                  </div>
+                  <button className="btn" onClick={() => setIsBuyOpen(true)}>Buy sticks</button>
                 </div>
               </div>
-              <BuyPanel onBuy={handleBuy} />
               <div className="rounded-xl border p-3 bg-white space-y-2">
                 <div className="font-semibold">Final Score → Winning Digit</div>
                 {isAdmin ? (
@@ -101,14 +111,6 @@ export default function MatchupDetailPage() {
                   <div className="text-sm opacity-70">Admin required to set scores.</div>
                 )}
                 <div className="text-sm opacity-70">Winning digit: <b>{winDigit ?? "—"}</b></div>
-              </div>
-              <div className="rounded-xl border p-3 bg-white">
-                <div className="font-semibold mb-2">Totals</div>
-                <ul className="text-sm space-y-1">
-                  <li>Groups: <b>{totals.groups}</b></li>
-                  <li>Total charged: <b>${totals.totalCharged.toFixed(2)}</b></li>
-                  <li>Possible winnings: <b>${totals.possibleW.toFixed(2)}</b></li>
-                </ul>
               </div>
             </div>
           </Card>
@@ -135,32 +137,132 @@ export default function MatchupDetailPage() {
   );
 }
 
-function BuyPanel({ onBuy }: { onBuy: (buyer: string, quantity: number) => void }) {
+type BuyFlowModalProps = {
+  open: boolean;
+  onClose: () => void;
+  matchup: Matchup;
+  pricePerStick: number;
+  totals: ReturnType<typeof computeTotals>;
+  onBuy: (buyer: string, quantity: number, separateBoards: boolean) => void;
+};
+
+function BuyFlowModal({ open, onClose, matchup, pricePerStick, totals, onBuy }: BuyFlowModalProps) {
   const [buyer, setBuyer] = useState("");
   const [qty, setQty] = useState<number>(1);
+  const [separateBoards, setSeparateBoards] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setBuyer("");
+      setQty(1);
+      setSeparateBoards(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (qty <= 1 && separateBoards) {
+      setSeparateBoards(false);
+    }
+  }, [qty, separateBoards]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const price = toMoney(pricePerStick);
+  const totalAmount = toMoney(price * qty);
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    onBuy(buyer, qty, separateBoards);
+    onClose();
+  };
+
   return (
-    <div className="rounded-xl border p-3 bg-white">
-      <div className="font-semibold mb-2">Sell sticks</div>
-      <div className="grid grid-cols-3 gap-2 items-center">
-        <input
-          className="input col-span-2 text-left"
-          placeholder="Buyer name (optional)"
-          value={buyer}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBuyer(e.target.value)}
-        />
-        <input
-          className="input input-sm"
-          type="number"
-          min={1}
-          max={10}
-          value={qty}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQty(clampInt(e.target.value, 1, 10))}
-        />
-      </div>
-      <div className="flex gap-2 mt-2">
-        <button className="btn flex-1" onClick={() => onBuy(buyer, qty)}>Buy</button>
-        <button className="btn-ghost" onClick={() => { setBuyer(""); setQty(1); }}>Clear</button>
-      </div>
+    <div
+      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="buy-modal-title"
+      onClick={onClose}
+    >
+      <form className="modal-panel space-y-4" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
+        <button type="button" className="modal-close" onClick={onClose} aria-label="Close buy sticks modal">×</button>
+        <div>
+          <h2 id="buy-modal-title" className="text-lg font-semibold">Buy sticks</h2>
+          <div className="text-sm opacity-70 mt-1">
+            {matchup.home} vs {matchup.away} • Kickoff: {fmtDate(matchup.kickoff)}
+          </div>
+        </div>
+        <div className="rounded-xl border p-3 bg-white">
+          <div className="font-semibold text-sm">Cost per stick</div>
+          <div className="text-lg font-semibold mt-1">${price.toFixed(2)}</div>
+        </div>
+        <div className="rounded-xl border p-3 bg-white space-y-3">
+          <div className="font-semibold">Sell sticks</div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="buy-buyer">Buyer name (optional)</label>
+            <input
+              id="buy-buyer"
+              className="input input-wide text-left"
+              placeholder="Buyer name (optional)"
+              value={buyer}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBuyer(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="buy-qty">How many sticks?</label>
+            <div className="flex items-center gap-2">
+              <input
+                id="buy-qty"
+                className="input input-sm"
+                type="number"
+                min={1}
+                max={10}
+                inputMode="numeric"
+                value={qty}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQty(clampInt(e.target.value, 1, 10))}
+              />
+              <span className="text-sm opacity-70">× ${price.toFixed(2)}</span>
+            </div>
+          </div>
+          {qty > 1 ? (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={separateBoards}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeparateBoards(e.target.checked)}
+              />
+              All Separate Boards
+            </label>
+          ) : null}
+        </div>
+        <div className="rounded-xl border p-3 bg-white">
+          <div className="font-semibold mb-2">Totals</div>
+          <ul className="text-sm space-y-1">
+            <li>Groups: <b>{totals.groups}</b></li>
+            <li>Total charged: <b>${totals.totalCharged.toFixed(2)}</b></li>
+            <li>Possible winnings: <b>${totals.possibleW.toFixed(2)}</b></li>
+          </ul>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-lg font-semibold">Total: {qty} × ${price.toFixed(2)} = ${totalAmount.toFixed(2)}</div>
+          <div className="flex gap-2">
+            <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn">Confirm Purchase</button>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }

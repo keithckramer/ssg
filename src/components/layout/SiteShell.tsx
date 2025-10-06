@@ -232,6 +232,12 @@ function Styles() {
         .space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.75rem; }
         .space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.5rem; }
         .space-y-1 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.25rem; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.45); display: flex; justify-content: center; align-items: flex-end; padding: 1rem; z-index: 50; }
+        @media (min-width: 768px) { .modal-overlay { align-items: center; padding: 2rem; } }
+        .modal-panel { position: relative; background: #fff; border-radius: 1.5rem; width: 100%; max-width: 42rem; box-shadow: 0 30px 70px rgba(15,23,42,0.22); max-height: calc(100vh - 2rem); overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; }
+        @media (max-width: 767px) { .modal-panel { border-radius: 0; height: 100%; max-height: none; padding: 1.25rem; } }
+        .modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: #64748b; font-size: 1.5rem; line-height: 1; cursor: pointer; }
+        .modal-close:hover { color: #0f172a; }
       `}</style>
   );
 }
