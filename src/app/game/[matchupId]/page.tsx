@@ -29,6 +29,7 @@ export default function MatchupDetailPage() {
     buySticks,
     setScores,
     clearScores,
+    setStickPaid,
     isAdmin,
     setLastMatchupId,
   } = useSportsSticks();
@@ -67,6 +68,11 @@ export default function MatchupDetailPage() {
   const handleClearScores = () => {
     if (!ensureAdmin()) return;
     clearScores(matchup.id);
+  };
+
+  const handleTogglePaid = (stickId: string, paid: boolean) => {
+    if (!ensureAdmin()) return;
+    setStickPaid(matchup.id, stickId, paid);
   };
 
   return (
@@ -114,7 +120,7 @@ export default function MatchupDetailPage() {
               </div>
             </div>
           </Card>
-          <Card title="Groups (0–9) & Results">
+          <Card title="Boards">
             <div className="space-y-4">
               {groups.length === 0 ? (
                 <div className="text-sm opacity-70">No sticks yet. Sell some!</div>
@@ -122,10 +128,15 @@ export default function MatchupDetailPage() {
                 groups.map((group, idx) => (
                   <div key={group.id} className="rounded-xl border p-3 bg-white">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="font-semibold">Group #{idx + 1}</div>
+                      <div className="font-semibold">Board #{idx + 1}</div>
                       <div className="text-xs opacity-70">{group.sticks.length}/10 filled</div>
                     </div>
-                    <GroupGrid sticks={group.sticks} winDigit={winDigit} />
+                    <GroupGrid
+                      sticks={group.sticks}
+                      winDigit={winDigit}
+                      isAdmin={isAdmin}
+                      onTogglePaid={handleTogglePaid}
+                    />
                   </div>
                 ))
               )}
@@ -250,7 +261,7 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, totals, onBuy }: 
         <div className="rounded-xl border p-3 bg-white">
           <div className="font-semibold mb-2">Totals</div>
           <ul className="text-sm space-y-1">
-            <li>Groups: <b>{totals.groups}</b></li>
+            <li>Boards: <b>{totals.groups}</b></li>
             <li>Total charged: <b>${totals.totalCharged.toFixed(2)}</b></li>
             <li>Possible winnings: <b>${totals.possibleW.toFixed(2)}</b></li>
           </ul>
@@ -310,7 +321,17 @@ function ScoreSetter({
   );
 }
 
-function GroupGrid({ sticks, winDigit }: { sticks: Stick[]; winDigit: number | null }) {
+function GroupGrid({
+  sticks,
+  winDigit,
+  isAdmin,
+  onTogglePaid,
+}: {
+  sticks: Stick[];
+  winDigit: number | null;
+  isAdmin: boolean;
+  onTogglePaid: (stickId: string, paid: boolean) => void;
+}) {
   const slotMap = new Map(sticks.map((s) => [s.number, s] as const));
   const slots = Array.from({ length: 10 }, (_, i) => ({ num: i, s: slotMap.get(i) || null }));
   return (
@@ -318,10 +339,26 @@ function GroupGrid({ sticks, winDigit }: { sticks: Stick[]; winDigit: number | n
       {slots.map(({ num, s }) => (
         <div
           key={num}
-          className={`slot ${winDigit !== null && num === winDigit ? "win" : ""}`}
-          title={s ? `Buyer: ${s.buyer}\nPaid: $${Number(s.price).toFixed(2)}\nAt: ${fmtDate(s.createdAt)}` : ""}
+          className={`slot ${winDigit !== null && num === winDigit ? "win" : ""} ${s ? (s.paid ? "slot-paid" : "slot-unpaid") : ""}`}
+          title={
+            s
+              ? `Buyer: ${s.buyer}\nPrice: $${Number(s.price).toFixed(2)}\nPaid: ${s.paid ? "Yes" : "No"}\nAt: ${fmtDate(s.createdAt)}`
+              : ""
+          }
         >
-          <div className="text-[11px] opacity-60">#{num}</div>
+          <div className="text-[11px] opacity-60 flex items-center justify-between gap-1">
+            <span>#{num}</span>
+            {isAdmin && s ? (
+              <label className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={!!s.paid}
+                  onChange={(event) => onTogglePaid(s.id, event.target.checked)}
+                />
+                <span>Paid</span>
+              </label>
+            ) : null}
+          </div>
           <div className="text-sm">{s ? s.buyer : "—"}</div>
         </div>
       ))}

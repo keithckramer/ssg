@@ -10,7 +10,15 @@ import React, {
 } from "react";
 
 export type Matchup = { id: string; home: string; away: string; kickoff: string };
-export type Stick = { id: string; buyer: string; number: number; price: number; fee: number; createdAt: string };
+export type Stick = {
+  id: string;
+  buyer: string;
+  number: number;
+  price: number;
+  fee: number;
+  createdAt: string;
+  paid: boolean;
+};
 export type Group = { id: string; sticks: Stick[] };
 export type OrdersMap = Record<string, Group[]>;
 export type ResultsEntry = { homeScore: number; awayScore: number; digit: number } | null;
@@ -58,6 +66,25 @@ const STORAGE_KEYS = {
   adminSession: "ss_admin_session_v1",
 } as const;
 
+function normalizeGroups(groups: unknown): Group[] {
+  if (!Array.isArray(groups)) return [];
+  return groups.map((group) => {
+    const rawGroup = typeof group === "object" && group !== null ? (group as Group) : ({ id: uid(), sticks: [] } as Group);
+    const sticksSource = Array.isArray(rawGroup.sticks) ? rawGroup.sticks : [];
+    const normalizedSticks = sticksSource
+      .filter((stick): stick is Stick => typeof stick === "object" && stick !== null)
+      .map((stick) => ({ ...stick, paid: !!stick.paid }));
+    return { id: rawGroup.id ?? uid(), sticks: normalizedSticks };
+  });
+}
+
+function normalizeOrders(data: unknown): OrdersMap {
+  if (!data || typeof data !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(data as OrdersMap).map(([matchupId, groups]) => [matchupId, normalizeGroups(groups)]),
+  );
+}
+
 const SAMPLE_MATCHUPS: Matchup[] = [
   { id: uid(), home: "Bengals", away: "Steelers", kickoff: "2025-09-07T13:00:00" },
   { id: uid(), home: "Chiefs", away: "Ravens", kickoff: "2025-09-07T16:25:00" },
@@ -86,6 +113,7 @@ type SportsSticksContextValue = {
   buySticks: (matchupId: string, buyer: string, quantity: number, options?: BuyStickOptions) => void;
   setScores: (matchupId: string, homeScore: number, awayScore: number) => void;
   clearScores: (matchupId: string) => void;
+  setStickPaid: (matchupId: string, stickId: string, paid: boolean) => void;
   exportJson: () => void;
   importJson: (file?: File) => Promise<void>;
   resetAll: () => void;
@@ -104,7 +132,7 @@ export function SportsSticksProvider({ children }: { children: React.ReactNode }
   const [matchups, setMatchups] = useState<Matchup[]>(() => load(STORAGE_KEYS.matchups, SAMPLE_MATCHUPS));
   const [lastMatchupId, setLastMatchupId] = useState<string | null>(() => load(STORAGE_KEYS.lastMatchupId, null));
   const [config, setConfig] = useState<Config>(() => load(STORAGE_KEYS.config, defaultConfig));
-  const [orders, setOrders] = useState<OrdersMap>(() => load(STORAGE_KEYS.orders, {}));
+  const [orders, setOrders] = useState<OrdersMap>(() => normalizeOrders(load(STORAGE_KEYS.orders, {})));
   const [results, setResults] = useState<ResultsMap>(() => load(STORAGE_KEYS.results, {}));
   const [adminPin, setAdminPinState] = useState<string | null>(() => load(STORAGE_KEYS.adminPin, null));
   const [isAdmin, setIsAdmin] = useState<boolean>(() => !!load(STORAGE_KEYS.adminSession, false));
@@ -171,7 +199,7 @@ export function SportsSticksProvider({ children }: { children: React.ReactNode }
 
   const buySticks = useCallback((matchupId: string, buyerName: string, quantity: number, options?: BuyStickOptions) => {
     setOrders((prev) => {
-      const groups: Group[] = [...(prev[matchupId] ?? [])];
+      const groups: Group[] = normalizeGroups(prev[matchupId] ?? []);
       const nowIso = new Date().toISOString();
       const q = clampInt(quantity, 1, 10);
       const buyer = (buyerName && buyerName.trim()) || "Guest";
@@ -194,6 +222,7 @@ export function SportsSticksProvider({ children }: { children: React.ReactNode }
             price: asMoney(config.potPerStick),
             fee: 0,
             createdAt: nowIso,
+            paid: false,
           });
           return true;
         };
@@ -251,6 +280,28 @@ export function SportsSticksProvider({ children }: { children: React.ReactNode }
     setResults((prev) => ({ ...prev, [matchupId]: null }));
   }, []);
 
+  const setStickPaid = useCallback((matchupId: string, stickId: string, paid: boolean) => {
+    setOrders((prev) => {
+      const groups = prev[matchupId];
+      if (!groups) return prev;
+      let changed = false;
+      const nextGroups = groups.map((group) => {
+        let groupChanged = false;
+        const nextSticks = group.sticks.map((stick) => {
+          if (stick.id !== stickId) return stick;
+          if (stick.paid === paid) return stick;
+          groupChanged = true;
+          changed = true;
+          return { ...stick, paid };
+        });
+        if (!groupChanged) return group;
+        return { ...group, sticks: nextSticks };
+      });
+      if (!changed) return prev;
+      return { ...prev, [matchupId]: nextGroups } as OrdersMap;
+    });
+  }, []);
+
   const exportJson = useCallback(() => {
     const payload = {
       version: 1,
@@ -284,7 +335,7 @@ export function SportsSticksProvider({ children }: { children: React.ReactNode }
       setMatchups(Array.isArray(snapshot.matchups) ? snapshot.matchups : []);
       setLastMatchupId(snapshot.lastMatchupId ?? null);
       setConfig(snapshot.config ?? defaultConfig);
-      setOrders(snapshot.orders ?? {});
+      setOrders(normalizeOrders(snapshot.orders ?? {}));
       setResults(snapshot.results ?? {});
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -343,6 +394,7 @@ export function SportsSticksProvider({ children }: { children: React.ReactNode }
     buySticks,
     setScores,
     clearScores,
+    setStickPaid,
     exportJson,
     importJson,
     resetAll,
@@ -358,6 +410,7 @@ export function SportsSticksProvider({ children }: { children: React.ReactNode }
     adminPin,
     buySticks,
     clearScores,
+    setStickPaid,
     config,
     exportJson,
     handleClearPin,

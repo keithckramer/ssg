@@ -220,8 +220,12 @@ function Styles() {
         .input:focus { border-color:#94a3b8; box-shadow:0 0 0 3px rgba(148,163,184,0.2); outline: none; }
         .input-sm { width: 6rem }
         .input-wide { width: 100% }
-        .slot { padding: 0.5rem; border-radius:0.75rem; border:1px solid #e2e8f0; font-size:0.8rem; display:flex; flex-direction:column; gap:0.35rem; justify-content:center; background:#f8fafc; min-height:3.5rem; transition: border-color 0.2s ease, background 0.2s ease; }
-        .win { background:#d1fae5; border-color:#6ee7b7 }
+        .slot { padding: 0.5rem; border-radius:0.75rem; border:1px solid #e2e8f0; font-size:0.8rem; display:flex; flex-direction:column; gap:0.35rem; justify-content:center; background:#f8fafc; min-height:3.5rem; transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease; }
+        .slot-paid { background:#dcfce7; border-color:#86efac; }
+        .slot-unpaid { background:#fee2e2; border-color:#fca5a5; }
+        .slot label { font-size:0.65rem; font-weight:600; color:#0f172a; }
+        .slot input[type="checkbox"] { width:0.85rem; height:0.85rem; }
+        .win { box-shadow:0 0 0 2px rgba(22,163,74,0.35); border-color:#16a34a; }
         .slot .text-sm { font-weight: 600; }
         .card { background:#fff; border:1px solid #e2e8f0; border-radius:1rem; padding:1rem; box-shadow:0 24px 60px rgba(15,23,42,.08); backdrop-filter: blur(6px); }
         .card h3 { margin:0 0 .5rem 0; font-size:1.05rem }
