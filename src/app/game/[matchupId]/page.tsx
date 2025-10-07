@@ -10,7 +10,6 @@ import {
   ResultsMap,
   Stick,
   fmtDate,
-  possibleWinnings,
   toMoney,
   useAdminGuard,
   useSportsSticks,
@@ -49,7 +48,6 @@ export default function MatchupDetailPage() {
   }
 
   const groups = useMemo(() => ((orders as OrdersMap)[matchup.id] ?? []), [matchup.id, orders]);
-  const totals = useMemo(() => computeTotals(groups), [groups]);
   const [isBuyOpen, setIsBuyOpen] = useState(false);
   const pricePerStick = toMoney(config.potPerStick);
   const resultEntry = (results as ResultsMap)[matchup.id] ?? null;
@@ -81,7 +79,6 @@ export default function MatchupDetailPage() {
         onClose={() => setIsBuyOpen(false)}
         matchup={matchup}
         pricePerStick={pricePerStick}
-        totals={totals}
         onBuy={(buyerName, quantity, separateBoards) => {
           handleBuy(buyerName, quantity, separateBoards);
         }}
@@ -152,11 +149,10 @@ type BuyFlowModalProps = {
   onClose: () => void;
   matchup: Matchup;
   pricePerStick: number;
-  totals: ReturnType<typeof computeTotals>;
   onBuy: (buyer: string, quantity: number, separateBoards: boolean) => void;
 };
 
-function BuyFlowModal({ open, onClose, matchup, pricePerStick, totals, onBuy }: BuyFlowModalProps) {
+function BuyFlowModal({ open, onClose, matchup, pricePerStick, onBuy }: BuyFlowModalProps) {
   const [buyer, setBuyer] = useState("");
   const [qty, setQty] = useState<number>(1);
   const [separateBoards, setSeparateBoards] = useState(false);
@@ -190,6 +186,13 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, totals, onBuy }: 
 
   const price = toMoney(pricePerStick);
   const totalAmount = toMoney(price * qty);
+  const summary = useMemo(() => {
+    const sticks = qty;
+    const boards = separateBoards && sticks > 1 ? sticks : 1;
+    const totalCharged = toMoney(sticks * 10);
+    const possibleW = toMoney(boards * 100);
+    return { boards, totalCharged, possibleW } as const;
+  }, [qty, separateBoards]);
   const stepperButtonStyle = (isDisabled: boolean): React.CSSProperties => ({
     width: "2.25rem",
     height: "2.25rem",
@@ -302,10 +305,16 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, totals, onBuy }: 
         </div>
         <div className="rounded-xl border p-3 bg-white">
           <div className="font-semibold mb-2">Summary</div>
-          <ul style={{listStyleType:'none'}}className="text-sm space-y-1">
-            <li>Boards: <b>{totals.groups}</b></li>
-            <li>Total charged: <b>${totals.totalCharged.toFixed(2)}</b></li>
-            <li>Possible winnings: <b>${totals.possibleW.toFixed(2)}</b></li>
+          <ul style={{ listStyleType: "none" }} className="text-sm space-y-1">
+            <li>
+              Boards: <b>{summary.boards}</b>
+            </li>
+            <li>
+              Total charged: <b>${summary.totalCharged.toFixed(2)}</b>
+            </li>
+            <li>
+              Possible winnings: <b>${summary.possibleW.toFixed(2)}</b>
+            </li>
           </ul>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -406,19 +415,4 @@ function GroupGrid({
       ))}
     </div>
   );
-}
-
-function computeTotals(groups: Group[]) {
-  const sticks = groups.reduce((sum, group) => sum + group.sticks.length, 0);
-  const totalCharged = groups.reduce(
-    (sum, group) => sum + group.sticks.reduce((inner, stick) => inner + toMoney(stick.price), 0),
-    0,
-  );
-  const possibleW = possibleWinnings(groups.length);
-  return {
-    sticks,
-    groups: groups.length,
-    totalCharged,
-    possibleW,
-  } as const;
 }
