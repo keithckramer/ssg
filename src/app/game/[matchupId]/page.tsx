@@ -10,7 +10,6 @@ import {
   ResultsMap,
   Stick,
   fmtDate,
-  possibleWinnings,
   toMoney,
   useAdminGuard,
   useSportsSticks,
@@ -36,24 +35,38 @@ export default function MatchupDetailPage() {
 
   const matchup = useMemo<Matchup | undefined>(() => matchups.find((m) => m.id === matchupId), [matchups, matchupId]);
 
+  const matchupKey = matchup?.id ?? "";
+
   useEffect(() => {
-    if (matchupId) {
-      setLastMatchupId(matchupId);
+    if (matchupKey) {
+      setLastMatchupId(matchupKey);
     }
-  }, [matchupId, setLastMatchupId]);
+  }, [matchupKey, setLastMatchupId]);
 
-  if (!matchup) {
-    const error = new Error("MATCHUP_NOT_FOUND");
-    error.name = "MatchupNotFound";
-    throw error;
-  }
-
-  const groups = useMemo(() => ((orders as OrdersMap)[matchup.id] ?? []), [matchup.id, orders]);
-  const totals = useMemo(() => computeTotals(groups), [groups]);
+  const groups = useMemo(() => ((orders as OrdersMap)[matchupKey] ?? []), [matchupKey, orders]);
   const [isBuyOpen, setIsBuyOpen] = useState(false);
   const pricePerStick = toMoney(config.potPerStick);
-  const resultEntry = (results as ResultsMap)[matchup.id] ?? null;
+  const resultEntry = matchupKey ? (results as ResultsMap)[matchupKey] ?? null : null;
   const winDigit = resultEntry?.digit ?? null;
+
+  if (!matchup) {
+    return (
+      <SiteShell>
+        <div className="mt-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <button className="btn-ghost" onClick={() => router.push("/")}>← Back to Matchups</button>
+            <div className="pill">Matchup unavailable</div>
+          </div>
+          <Card title="Matchup not found">
+            <div className="space-y-2 text-sm opacity-70">
+              <p>The matchup you&rsquo;re looking for doesn&rsquo;t exist anymore or has been removed.</p>
+              <button className="btn" onClick={() => router.push("/")}>Browse all matchups</button>
+            </div>
+          </Card>
+        </div>
+      </SiteShell>
+    );
+  }
 
   const handleBuy = (buyer: string, qty: number, separateBoards: boolean) => {
     buySticks(matchup.id, buyer, qty, { separateBoards });
@@ -81,7 +94,6 @@ export default function MatchupDetailPage() {
         onClose={() => setIsBuyOpen(false)}
         matchup={matchup}
         pricePerStick={pricePerStick}
-        totals={totals}
         onBuy={(buyerName, quantity, separateBoards) => {
           handleBuy(buyerName, quantity, separateBoards);
         }}
@@ -152,11 +164,10 @@ type BuyFlowModalProps = {
   onClose: () => void;
   matchup: Matchup;
   pricePerStick: number;
-  totals: ReturnType<typeof computeTotals>;
   onBuy: (buyer: string, quantity: number, separateBoards: boolean) => void;
 };
 
-function BuyFlowModal({ open, onClose, matchup, pricePerStick, totals, onBuy }: BuyFlowModalProps) {
+function BuyFlowModal({ open, onClose, matchup, pricePerStick, onBuy }: BuyFlowModalProps) {
   const [buyer, setBuyer] = useState("");
   const [qty, setQty] = useState<number>(1);
   const [separateBoards, setSeparateBoards] = useState(false);
@@ -189,6 +200,10 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, totals, onBuy }: 
   if (!open) return null;
 
   const price = toMoney(pricePerStick);
+  const sticks = qty;
+  const boards = separateBoards && sticks > 1 ? sticks : 1;
+  const totalCharged = toMoney(sticks * 10);
+  const possibleW = toMoney(boards * 100);
   const totalAmount = toMoney(price * qty);
   const stepperButtonStyle = (isDisabled: boolean): React.CSSProperties => ({
     width: "2.25rem",
@@ -302,10 +317,16 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, totals, onBuy }: 
         </div>
         <div className="rounded-xl border p-3 bg-white">
           <div className="font-semibold mb-2">Summary</div>
-          <ul style={{listStyleType:'none'}}className="text-sm space-y-1">
-            <li>Boards: <b>{totals.groups}</b></li>
-            <li>Total charged: <b>${totals.totalCharged.toFixed(2)}</b></li>
-            <li>Possible winnings: <b>${totals.possibleW.toFixed(2)}</b></li>
+          <ul style={{ listStyleType: "none" }} className="text-sm space-y-1">
+            <li>
+              Boards: <b>{boards}</b>
+            </li>
+            <li>
+              Total charged: <b>${totalCharged.toFixed(2)}</b>
+            </li>
+            <li>
+              Possible winnings: <b>${possibleW.toFixed(2)}</b>
+            </li>
           </ul>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -406,19 +427,4 @@ function GroupGrid({
       ))}
     </div>
   );
-}
-
-function computeTotals(groups: Group[]) {
-  const sticks = groups.reduce((sum, group) => sum + group.sticks.length, 0);
-  const totalCharged = groups.reduce(
-    (sum, group) => sum + group.sticks.reduce((inner, stick) => inner + toMoney(stick.price), 0),
-    0,
-  );
-  const possibleW = possibleWinnings(groups.length);
-  return {
-    sticks,
-    groups: groups.length,
-    totalCharged,
-    possibleW,
-  } as const;
 }
