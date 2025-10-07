@@ -35,23 +35,38 @@ export default function MatchupDetailPage() {
 
   const matchup = useMemo<Matchup | undefined>(() => matchups.find((m) => m.id === matchupId), [matchups, matchupId]);
 
+  const matchupKey = matchup?.id ?? "";
+
   useEffect(() => {
-    if (matchupId) {
-      setLastMatchupId(matchupId);
+    if (matchupKey) {
+      setLastMatchupId(matchupKey);
     }
-  }, [matchupId, setLastMatchupId]);
+  }, [matchupKey, setLastMatchupId]);
 
-  if (!matchup) {
-    const error = new Error("MATCHUP_NOT_FOUND");
-    error.name = "MatchupNotFound";
-    throw error;
-  }
-
-  const groups = useMemo(() => ((orders as OrdersMap)[matchup.id] ?? []), [matchup.id, orders]);
+  const groups = useMemo(() => ((orders as OrdersMap)[matchupKey] ?? []), [matchupKey, orders]);
   const [isBuyOpen, setIsBuyOpen] = useState(false);
   const pricePerStick = toMoney(config.potPerStick);
-  const resultEntry = (results as ResultsMap)[matchup.id] ?? null;
+  const resultEntry = matchupKey ? (results as ResultsMap)[matchupKey] ?? null : null;
   const winDigit = resultEntry?.digit ?? null;
+
+  if (!matchup) {
+    return (
+      <SiteShell>
+        <div className="mt-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <button className="btn-ghost" onClick={() => router.push("/")}>← Back to Matchups</button>
+            <div className="pill">Matchup unavailable</div>
+          </div>
+          <Card title="Matchup not found">
+            <div className="space-y-2 text-sm opacity-70">
+              <p>The matchup you&rsquo;re looking for doesn&rsquo;t exist anymore or has been removed.</p>
+              <button className="btn" onClick={() => router.push("/")}>Browse all matchups</button>
+            </div>
+          </Card>
+        </div>
+      </SiteShell>
+    );
+  }
 
   const handleBuy = (buyer: string, qty: number, separateBoards: boolean) => {
     buySticks(matchup.id, buyer, qty, { separateBoards });
@@ -185,14 +200,11 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, onBuy }: BuyFlowM
   if (!open) return null;
 
   const price = toMoney(pricePerStick);
+  const sticks = qty;
+  const boards = separateBoards && sticks > 1 ? sticks : 1;
+  const totalCharged = toMoney(sticks * 10);
+  const possibleW = toMoney(boards * 100);
   const totalAmount = toMoney(price * qty);
-  const summary = useMemo(() => {
-    const sticks = qty;
-    const boards = separateBoards && sticks > 1 ? sticks : 1;
-    const totalCharged = toMoney(sticks * 10);
-    const possibleW = toMoney(boards * 100);
-    return { boards, totalCharged, possibleW } as const;
-  }, [qty, separateBoards]);
   const stepperButtonStyle = (isDisabled: boolean): React.CSSProperties => ({
     width: "2.25rem",
     height: "2.25rem",
@@ -307,13 +319,13 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, onBuy }: BuyFlowM
           <div className="font-semibold mb-2">Summary</div>
           <ul style={{ listStyleType: "none" }} className="text-sm space-y-1">
             <li>
-              Boards: <b>{summary.boards}</b>
+              Boards: <b>{boards}</b>
             </li>
             <li>
-              Total charged: <b>${summary.totalCharged.toFixed(2)}</b>
+              Total charged: <b>${totalCharged.toFixed(2)}</b>
             </li>
             <li>
-              Possible winnings: <b>${summary.possibleW.toFixed(2)}</b>
+              Possible winnings: <b>${possibleW.toFixed(2)}</b>
             </li>
           </ul>
         </div>
