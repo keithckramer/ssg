@@ -1,0 +1,242 @@
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.card {
+  background: white;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow: 0 20px 38px rgba(15, 23, 42, 0.1);
+  padding: 2rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.heroCard {
+  position: relative;
+  overflow: hidden;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.description {
+  color: rgba(15, 23, 42, 0.7);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.actionLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.65rem 1.1rem;
+  border-radius: 0.9rem;
+  background: rgba(37, 99, 235, 0.15);
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.actionLink svg {
+  width: 18px;
+  height: 18px;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cardTitle {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.cardSubtitle {
+  color: rgba(15, 23, 42, 0.6);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.matchupCard {
+  gap: 1.5rem;
+}
+
+.form {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.fieldRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: rgba(15, 23, 42, 0.85);
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  font-size: 1rem;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.85rem;
+  border: none;
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.submit:hover,
+.submit:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 28px rgba(37, 99, 235, 0.25);
+  outline: none;
+}
+
+.feedback {
+  border-radius: 0.85rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.feedbackSuccess {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.feedbackError {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
+.listWrapper {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.inviteCard {
+  gap: 1.5rem;
+}
+
+.inviteContent {
+  display: grid;
+  gap: 0.75rem;
+  color: rgba(15, 23, 42, 0.75);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.primaryLink {
+  justify-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.85rem;
+  background: rgba(37, 99, 235, 0.15);
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.primaryLink:hover,
+.primaryLink:focus-visible {
+  background: rgba(37, 99, 235, 0.25);
+  outline: none;
+}
+
+.primaryLink svg {
+  width: 18px;
+  height: 18px;
+}
+
+.denied {
+  text-align: center;
+  padding: 2.5rem 2rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.denied h1 {
+  font-size: 2rem;
+}
+
+.denied p {
+  color: rgba(15, 23, 42, 0.7);
+}
+
+.denied a {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 1.75rem;
+  }
+
+  .fieldRow {
+    grid-template-columns: 1fr;
+  }
+}
