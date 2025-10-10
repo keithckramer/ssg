@@ -25,8 +25,6 @@ export default function MatchupDetailPage() {
     results,
     config,
     buySticks,
-    setScores,
-    clearScores,
     setStickPaid,
     isAdmin,
     setLastMatchupId,
@@ -60,7 +58,7 @@ export default function MatchupDetailPage() {
           <Card title="Matchup not found">
             <div className="space-y-2 text-sm opacity-70">
               <p>The matchup you&rsquo;re looking for doesn&rsquo;t exist anymore or has been removed.</p>
-              <button className="btn" onClick={() => router.push("/")}>Browse all matchups</button>
+              <button className="ssg-btn-dark" onClick={() => router.push("/")}>Browse all matchups</button>
             </div>
           </Card>
         </div>
@@ -70,16 +68,6 @@ export default function MatchupDetailPage() {
 
   const handleBuy = (buyer: string, qty: number, separateBoards: boolean) => {
     buySticks(matchup.id, buyer, qty, { separateBoards });
-  };
-
-  const handleSetScores = (homeScore: number, awayScore: number) => {
-    if (!ensureAdmin()) return;
-    setScores(matchup.id, homeScore, awayScore);
-  };
-
-  const handleClearScores = () => {
-    if (!ensureAdmin()) return;
-    clearScores(matchup.id);
   };
 
   const handleTogglePaid = (stickId: string, paid: boolean) => {
@@ -100,39 +88,38 @@ export default function MatchupDetailPage() {
       />
       <div className="mt-6 space-y-4">
         <div className="flex items-center justify-between">
-          <button className="btn-ghost" onClick={() => router.push("/")}>← Back to Matchups</button>
+          <button className="ssg-btn" onClick={() => router.push("/")}>← Back to Matchups</button>
           <div className="pill">{matchup.home} vs {matchup.away}</div>
         </div>
         <div className="grid lg:grid-cols-2 gap-6">
           <Card title="Game & Sticks">
             <div className="space-y-4">
-              <div className="rounded-xl border p-3 bg-white">
+              <div className="rounded-xl border bg-white p-4" style={{ borderColor: "rgba(148, 163, 184, 0.45)" }}>
                 <div className="flex md:flex-row md:items-center md:justify-between gap-3">
                   <div>
                     <div className="font-semibold text-lg">{matchup.home} vs {matchup.away}</div>
                     <div className="text-sm opacity-70">Kickoff: {fmtDate(matchup.kickoff)}</div>
                   </div>
-                  <button style={{width:"130px"}} className="btn" onClick={() => setIsBuyOpen(true)}>Buy sticks</button>
+                  <button
+                    style={{ width: "130px" }}
+                    className="ssg-btn-dark"
+                    onClick={() => setIsBuyOpen(true)}
+                  >
+                    Buy sticks
+                  </button>
                 </div>
-              </div>
-              <div className="rounded-xl border p-3 bg-white space-y-2">
-                <div className="font-semibold">Final Score → Winning Digit</div>
-                {isAdmin ? (
-                  <ScoreSetter
-                    matchup={matchup}
-                    results={results}
-                    onSet={handleSetScores}
-                    onClear={handleClearScores}
-                  />
-                ) : (
-                  <div className="text-sm opacity-70">Admin required to set scores.</div>
-                )}
-                <div className="text-sm opacity-70">Winning digit: <b>{winDigit ?? "—"}</b></div>
               </div>
             </div>
           </Card>
           <Card title="Boards">
             <div className="space-y-4">
+              <div className="rounded-xl border bg-white p-3" style={{ borderColor: "rgba(148, 163, 184, 0.45)" }}>
+                <div className="text-sm font-medium text-slate-600">Winning digit</div>
+                <div className="text-2xl font-semibold mt-1">{winDigit ?? "—"}</div>
+                <p className="text-xs opacity-70 mt-2">
+                  Admins confirm the final score on the Admin page. Boards update automatically.
+                </p>
+              </div>
               {groups.length === 0 ? (
                 <div className="text-sm opacity-70">No sticks yet. Sell some!</div>
               ) : (
@@ -208,17 +195,11 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, onBuy }: BuyFlowM
   const stepperButtonStyle = (isDisabled: boolean): React.CSSProperties => ({
     width: "2.25rem",
     height: "2.25rem",
-    borderRadius: "0.65rem",
+    borderRadius: "0.85rem",
     border: "1px solid #e2e8f0",
-    background: isDisabled ? "#f1f5f9" : "#fff",
+    background: isDisabled ? "#f1f5f9" : "#ffffff",
     fontSize: "1.25rem",
     lineHeight: 1,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: isDisabled ? "not-allowed" : "pointer",
-    color: "#0f172a",
-    fontWeight: 600,
   });
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -243,23 +224,24 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, onBuy }: BuyFlowM
             {matchup.home} vs {matchup.away} • Kickoff: {fmtDate(matchup.kickoff)}
           </div>
         </div>
-        <div className="rounded-xl border p-3 bg-white">
+        <div className="rounded-2xl border bg-white p-4" style={{ borderColor: "rgba(148, 163, 184, 0.45)" }}>
           <div className="font-semibold text-sm">Cost per stick</div>
           <div className="text-lg font-semibold mt-1">${price.toFixed(2)}</div>
         </div>
-        <div className="rounded-xl border p-3 bg-white space-y-3">
+        <div className="rounded-2xl border bg-white p-4 space-y-3" style={{ borderColor: "rgba(148, 163, 184, 0.45)" }}>
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="buy-buyer">
               Name <span aria-hidden="true" style={{ color: "#dc2626" }}>*</span>
             </label>
             <input
               id="buy-buyer"
-              className="input input-wide text-left"
+              className="ssg-input text-left"
               placeholder="Enter buyer name"
               value={buyer}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBuyer(e.target.value)}
               autoFocus
               required
+              aria-label="Buyer name"
             />
           </div>
           <div className="space-y-2">
@@ -271,7 +253,7 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, onBuy }: BuyFlowM
                 className="flex items-center gap-2"
                 style={{
                   border: "1px solid #e2e8f0",
-                  borderRadius: "0.75rem",
+                  borderRadius: "0.85rem",
                   padding: "0.25rem",
                   background: "#fff",
                 }}
@@ -281,6 +263,7 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, onBuy }: BuyFlowM
                   onClick={() => setQty((current) => Math.max(1, current - 1))}
                   aria-label="Decrease number of sticks"
                   disabled={qty <= 1}
+                  className="ssg-btn ssg-btn-sm"
                   style={stepperButtonStyle(qty <= 1)}
                 >
                   −
@@ -296,6 +279,7 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, onBuy }: BuyFlowM
                   onClick={() => setQty((current) => Math.min(10, current + 1))}
                   aria-label="Increase number of sticks"
                   disabled={qty >= 10}
+                  className="ssg-btn ssg-btn-sm"
                   style={stepperButtonStyle(qty >= 10)}
                 >
                   +
@@ -315,7 +299,7 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, onBuy }: BuyFlowM
             </label>
           ) : null}
         </div>
-        <div className="rounded-xl border p-3 bg-white">
+        <div className="rounded-2xl border bg-white p-4" style={{ borderColor: "rgba(148, 163, 184, 0.45)" }}>
           <div className="font-semibold mb-2">Summary</div>
           <ul style={{ listStyleType: "none" }} className="text-sm space-y-1">
             <li>
@@ -332,54 +316,11 @@ function BuyFlowModal({ open, onClose, matchup, pricePerStick, onBuy }: BuyFlowM
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-lg font-semibold">Total: {qty} × ${price.toFixed(2)} = ${totalAmount.toFixed(2)}</div>
           <div className="flex gap-2">
-            <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn">Confirm Purchase</button>
+            <button type="button" className="ssg-btn" onClick={onClose}>Cancel</button>
+            <button type="submit" className="ssg-btn-dark">Confirm Purchase</button>
           </div>
         </div>
       </form>
-    </div>
-  );
-}
-
-function ScoreSetter({
-  matchup,
-  results,
-  onSet,
-  onClear,
-}: {
-  matchup: Matchup;
-  results: ResultsMap;
-  onSet: (homeScore: number, awayScore: number) => void;
-  onClear: () => void;
-}) {
-  const entry = results[matchup.id] ?? null;
-  const [homeScore, setHomeScore] = useState<string | number>(entry?.homeScore ?? "");
-  const [awayScore, setAwayScore] = useState<string | number>(entry?.awayScore ?? "");
-
-  useEffect(() => {
-    const latest = results[matchup.id] ?? null;
-    setHomeScore(latest?.homeScore ?? "");
-    setAwayScore(latest?.awayScore ?? "");
-  }, [matchup.id, results]);
-
-  return (
-    <div className="grid grid-cols-3 gap-2 items-center">
-      <input
-        className="input input-sm"
-        placeholder={`${matchup.home} score`}
-        value={homeScore}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHomeScore(e.target.value.replace(/[^0-9]/g, ""))}
-      />
-      <input
-        className="input input-sm"
-        placeholder={`${matchup.away} score`}
-        value={awayScore}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAwayScore(e.target.value.replace(/[^0-9]/g, ""))}
-      />
-      <div className="flex gap-2">
-        <button className="btn" onClick={() => onSet(Number(homeScore || 0), Number(awayScore || 0))}>Set</button>
-        <button className="btn-ghost" onClick={onClear}>Clear</button>
-      </div>
     </div>
   );
 }

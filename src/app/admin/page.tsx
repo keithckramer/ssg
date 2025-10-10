@@ -1,14 +1,14 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
-import { MatchupPicker } from "@/components/matchups/MatchupPicker";
-import { useSportsSticks } from "@/components/providers/SportsSticksProvider";
-import { Input } from "@/components/ui/Input";
+import SiteShell from "@/components/layout/SiteShell";
+import { AdminTools } from "@/components/admin/AdminTools";
+import { DataTools } from "@/components/admin/DataTools";
+import { WinningDigitInline } from "@/components/admin/WinningDigitInline";
+import { fmtDate, useSportsSticks } from "@/components/providers/SportsSticksProvider";
 import { useAuth } from "@/context/AuthContext";
-
-import styles from "./admin.module.css";
 
 type Feedback = {
   type: "success" | "error";
@@ -23,185 +23,188 @@ const kickoffPlaceholder = (): string => {
 
 export default function AdminPage() {
   const { user } = useAuth();
-  const { matchups, addMatchup, removeMatchup } = useSportsSticks();
+  const { matchups, addMatchup, removeMatchup, results } = useSportsSticks();
 
   const [homeTeam, setHomeTeam] = useState("");
   const [awayTeam, setAwayTeam] = useState("");
   const [kickoff, setKickoff] = useState(() => kickoffPlaceholder());
-  const [activeMatchupId, setActiveMatchupId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   useEffect(() => {
-    setActiveMatchupId((current) => {
-      if (!matchups.length) return null;
-      if (current && matchups.some((m) => m.id === current)) return current;
-      return matchups[0]?.id ?? null;
-    });
-  }, [matchups]);
-
-  useEffect(() => {
     if (!feedback) return;
-    const timer = setTimeout(() => setFeedback(null), 4000);
+    const timer = setTimeout(() => setFeedback(null), 3200);
     return () => clearTimeout(timer);
   }, [feedback]);
 
-  const isAdmin = user && user.role === "admin";
+  const isAdminUser = user?.role === "admin";
 
-  const handleCreate = useCallback(
-    (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      const nextFeedback: Feedback = { type: "error", message: "" };
+  const handleCreate = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmedHome = homeTeam.trim();
+    const trimmedAway = awayTeam.trim();
 
-      const home = homeTeam.trim();
-      const away = awayTeam.trim();
-      if (!home || !away) {
-        nextFeedback.message = "Enter both home and away teams to create a matchup.";
-        setFeedback(nextFeedback);
-        return;
-      }
+    if (!trimmedHome || !trimmedAway) {
+      setFeedback({ type: "error", message: "Enter both home and away teams." });
+      return;
+    }
 
-      if (!kickoff) {
-        nextFeedback.message = "Select a kickoff date and time.";
-        setFeedback(nextFeedback);
-        return;
-      }
+    if (!kickoff) {
+      setFeedback({ type: "error", message: "Select a kickoff date and time." });
+      return;
+    }
 
-      const kickoffDate = new Date(kickoff);
-      if (Number.isNaN(kickoffDate.getTime())) {
-        nextFeedback.message = "Kickoff must be a valid date.";
-        setFeedback(nextFeedback);
-        return;
-      }
+    const kickoffDate = new Date(kickoff);
+    if (Number.isNaN(kickoffDate.getTime())) {
+      setFeedback({ type: "error", message: "Kickoff must be a valid date." });
+      return;
+    }
 
-      const createdId = addMatchup(home, away, kickoffDate.toISOString());
-      setHomeTeam("");
-      setAwayTeam("");
-      setKickoff(kickoffPlaceholder());
-      setActiveMatchupId(createdId);
-      setFeedback({ type: "success", message: "Matchup created successfully." });
-    },
-    [addMatchup, homeTeam, awayTeam, kickoff],
+    addMatchup(trimmedHome, trimmedAway, kickoffDate.toISOString());
+    setHomeTeam("");
+    setAwayTeam("");
+    setKickoff(kickoffPlaceholder());
+    setFeedback({ type: "success", message: "Matchup created successfully." });
+  };
+
+  const handleRemove = (id: string) => {
+    removeMatchup(id);
+    setFeedback({ type: "success", message: "Matchup removed." });
+  };
+
+  const matchupEntries = useMemo(
+    () =>
+      matchups.map((matchup) => ({
+        matchup,
+        result: results[matchup.id] ?? null,
+      })),
+    [matchups, results],
   );
 
-  const handleRemove = useCallback(
-    (id: string) => {
-      removeMatchup(id);
-      setFeedback({ type: "success", message: "Matchup removed." });
-    },
-    [removeMatchup],
-  );
-
-  if (!isAdmin) {
+  if (!isAdminUser) {
     return (
-      <div className={styles.page}>
-        <section className={`${styles.card} ${styles.denied}`}>
-          <h1>403 – Friendly stick block</h1>
-          <p>You need an admin account to access this dashboard.</p>
-          <Link href="/">Return home</Link>
-        </section>
-      </div>
+      <SiteShell>
+        <div className="mt-6 space-y-4">
+          <section className="ssg-card space-y-3">
+            <h1 className="text-xl font-semibold">403 – Friendly stick block</h1>
+            <p className="text-sm text-slate-600">
+              You need an admin account to access this dashboard.
+            </p>
+            <Link href="/" className="ssg-btn ssg-btn-sm" aria-label="Return to matchups">
+              Return home
+            </Link>
+          </section>
+        </div>
+      </SiteShell>
     );
   }
 
   return (
-    <div className={styles.page}>
-      <section className={`${styles.card} ${styles.heroCard}`}>
-        <span className={styles.badge}>Admin</span>
-        <h1 className={styles.title}>Admin Dashboard</h1>
-        <p className={styles.description}>
-          Keep the SSG universe running smoothly. This space will grow into analytics, matchup management, and invite
-          approvals.
-        </p>
-        <div className={styles.actions}>
-          <Link href="/game" className={styles.actionLink}>
-            Matchups
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="currentColor" d="M5 11h10.59l-3.3-3.29L13 6l5 5-5 5-0.71-1.71L15.59 13H5z" />
-            </svg>
-          </Link>
-        </div>
-      </section>
+    <SiteShell>
+      <div className="mt-6 space-y-4">
+        <AdminTools />
+        <DataTools />
 
-      <section className={`${styles.card} ${styles.matchupCard}`}>
-        <header className={styles.cardHeader}>
-          <div>
-            <h2 className={styles.cardTitle}>Matchup Control</h2>
-            <p className={styles.cardSubtitle}>Add fresh games and retire old ones to keep the board current.</p>
-          </div>
-        </header>
+        <section className="ssg-card space-y-4">
+          <header className="space-y-1">
+            <h2 className="text-lg font-semibold">Matchups</h2>
+            <p className="text-sm text-slate-500">Create new games and set winning digits once scores are final.</p>
+          </header>
 
-        <form onSubmit={handleCreate} className={styles.form}>
-          <div className={styles.fieldRow}>
-            <label className={styles.field}>
-              <span>Home team</span>
-              <Input
-                value={homeTeam}
-                onChange={(event) => setHomeTeam(event.target.value)}
-                placeholder="Home team"
+          <form onSubmit={handleCreate} className="space-y-3">
+            <div className="flex flex-wrap gap-3">
+              <label className="flex-1 space-y-2" style={{ minWidth: "180px" }}>
+                <span className="text-sm font-medium text-slate-600">Home team</span>
+                <input
+                  className="ssg-input"
+                  value={homeTeam}
+                  onChange={(event) => setHomeTeam(event.target.value)}
+                  placeholder="Home team"
+                  aria-label="Home team"
+                />
+              </label>
+              <label className="flex-1 space-y-2" style={{ minWidth: "180px" }}>
+                <span className="text-sm font-medium text-slate-600">Away team</span>
+                <input
+                  className="ssg-input"
+                  value={awayTeam}
+                  onChange={(event) => setAwayTeam(event.target.value)}
+                  placeholder="Away team"
+                  aria-label="Away team"
+                />
+              </label>
+            </div>
+            <label className="flex flex-col space-y-2" style={{ minWidth: "220px" }}>
+              <span className="text-sm font-medium text-slate-600">Kickoff</span>
+              <input
+                type="datetime-local"
+                className="ssg-input"
+                value={kickoff}
+                onChange={(event) => setKickoff(event.target.value)}
+                aria-label="Kickoff date and time"
               />
             </label>
-            <label className={styles.field}>
-              <span>Away team</span>
-              <Input
-                value={awayTeam}
-                onChange={(event) => setAwayTeam(event.target.value)}
-                placeholder="Away team"
-              />
-            </label>
-          </div>
-          <label className={`${styles.field} ${styles.fullWidth}`}>
-            <span>Kickoff</span>
-            <Input
-              type="datetime-local"
-              value={kickoff}
-              onChange={(event) => setKickoff(event.target.value)}
-            />
-          </label>
-          <div className={styles.formActions}>
-            <button type="submit" className={styles.submit}>
-              Create matchup
-            </button>
-          </div>
-        </form>
+            <div className="flex justify-end">
+              <button type="submit" className="ssg-btn-dark">
+                Create matchup
+              </button>
+            </div>
+          </form>
 
-        {feedback && (
-          <div className={`${styles.feedback} ${feedback.type === "success" ? styles.feedbackSuccess : styles.feedbackError}`}>
-            {feedback.message}
-          </div>
-        )}
+          {feedback ? (
+            <div
+              className="rounded-xl border p-3 text-sm font-medium"
+              style={{
+                background: feedback.type === "success" ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)",
+                borderColor: feedback.type === "success" ? "rgba(16, 185, 129, 0.4)" : "rgba(239, 68, 68, 0.45)",
+                color: feedback.type === "success" ? "#047857" : "#b91c1c",
+              }}
+            >
+              {feedback.message}
+            </div>
+          ) : null}
 
-        <div className={styles.listWrapper}>
-          <MatchupPicker
-            matchups={matchups}
-            activeId={activeMatchupId}
-            onSelect={setActiveMatchupId}
-            onRemove={handleRemove}
-          />
-        </div>
-      </section>
-
-      <section className={`${styles.card} ${styles.inviteCard}`}>
-        <header className={styles.cardHeader}>
-          <div>
-            <h2 className={styles.cardTitle}>Invite Manager</h2>
-            <p className={styles.cardSubtitle}>
-              Send new invitations, monitor outstanding tokens, and revoke access when plans change.
-            </p>
+          <div className="space-y-3">
+            {matchupEntries.length === 0 ? (
+              <div className="text-sm text-slate-500">No matchups yet. Add one above to get started.</div>
+            ) : (
+              <ul className="space-y-3" aria-label="Matchup list">
+                {matchupEntries.map(({ matchup, result }) => (
+                  <li
+                    key={matchup.id}
+                    className="rounded-2xl border bg-white p-4 space-y-3"
+                    style={{ borderColor: "rgba(148, 163, 184, 0.45)" }}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="text-base font-semibold text-slate-900">
+                          {matchup.home} vs {matchup.away}
+                        </div>
+                        <div className="text-sm text-slate-500">Kickoff: {fmtDate(matchup.kickoff)}</div>
+                      </div>
+                      <button
+                        type="button"
+                        className="ssg-btn ssg-btn-sm"
+                        onClick={() => handleRemove(matchup.id)}
+                        aria-label={`Remove ${matchup.home} vs ${matchup.away}`}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <WinningDigitInline
+                      matchupId={matchup.id}
+                      homeTeam={matchup.home}
+                      awayTeam={matchup.away}
+                      homeScore={result?.homeScore ?? null}
+                      awayScore={result?.awayScore ?? null}
+                      winningDigit={result?.digit ?? null}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-        </header>
-        <div className={styles.inviteContent}>
-          <p>
-            Head to the invite console to issue new tokens or follow up on pending invites. It&apos;s the easiest way to
-            welcome players into the latest stick battles.
-          </p>
-          <Link href="/invites" className={styles.primaryLink}>
-            Open invite console
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="currentColor" d="M5 11h10.59l-3.3-3.29L13 6l5 5-5 5-0.71-1.71L15.59 13H5z" />
-            </svg>
-          </Link>
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
+    </SiteShell>
   );
 }

@@ -28,8 +28,8 @@ export default function MatchupError({ error, reset }: ErrorProps) {
               : "An unexpected error occurred while loading the matchup."}
           </p>
           <div className="flex gap-2 mt-4">
-            <button className="btn" onClick={() => router.push("/")}>Return to matchups</button>
-            <button className="btn-ghost" onClick={reset}>Try again</button>
+            <button className="ssg-btn-dark" onClick={() => router.push("/")}>Return to matchups</button>
+            <button className="ssg-btn" onClick={reset}>Try again</button>
           </div>
         </Card>
       </div>

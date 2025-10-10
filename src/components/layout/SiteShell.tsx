@@ -1,54 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
-import { useSportsSticks } from "@/components/providers/SportsSticksProvider";
+import React from "react";
 
 type SiteShellProps = {
   children: React.ReactNode;
 };
 
 export default function SiteShell({ children }: SiteShellProps) {
-  const {
-    exportJson,
-    importJson,
-    resetAll,
-    adminPin,
-    isAdmin,
-    handleSetPin,
-    handleLogin,
-    handleLogout,
-    handleClearPin,
-  } = useSportsSticks();
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="max-w-6xl mx-auto p-4 md:p-8">
         <Header />
-        <AdminBar
-          adminPin={adminPin}
-          isAdmin={isAdmin}
-          onSetPin={handleSetPin}
-          onLogin={handleLogin}
-          onLogout={handleLogout}
-          onClearPin={handleClearPin}
-        />
-        <div className="flex flex-wrap gap-2 mt-4">
-          <button className="btn" onClick={exportJson}>Export JSON</button>
-          <label className="btn-ghost cursor-pointer">
-            Import JSON
-            <input
-              type="file"
-              accept="application/json"
-              style={{ display: "none" }}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) importJson(file);
-                e.target.value = "";
-              }}
-            />
-          </label>
-          <button className="btn-ghost" onClick={resetAll}>Reset Data</button>
-        </div>
         {children}
         <Footer />
       </div>
@@ -64,58 +26,6 @@ function Header() {
         <h1 className="text-2xl md:text-3xl font-bold">Sports Sticks – Mini MVP</h1>
         <p className="muted">Each group holds numbers 0–9. (home+away) % 10 decides the winner.</p>
       </div>
-    </div>
-  );
-}
-
-type AdminBarProps = {
-  adminPin: string | null;
-  isAdmin: boolean;
-  onSetPin: (pin: string) => void;
-  onLogin: (pin: string) => void;
-  onLogout: () => void;
-  onClearPin: () => void;
-};
-
-function AdminBar({ adminPin, isAdmin, onSetPin, onLogin, onLogout, onClearPin }: AdminBarProps) {
-  const [pinInput, setPinInput] = useState("");
-  const [newPin, setNewPin] = useState("");
-
-  return (
-    <div className="mt-3 rounded-xl border p-3 bg-white flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-      <div className="font-semibold">Admin</div>
-      {adminPin ? (
-        <div className="flex gap-2 items-center flex-wrap">
-          <span className="text-sm">Status: <b>{isAdmin ? "Logged in" : "Logged out"}</b></span>
-          {isAdmin ? (
-            <>
-              <button className="btn-ghost" onClick={onLogout}>Logout</button>
-              <button className="btn-ghost" onClick={onClearPin}>Remove PIN</button>
-            </>
-          ) : (
-            <>
-              <input
-                className="input input-sm"
-                placeholder="Enter PIN"
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value.replace(/[^0-9]/g, ""))}
-              />
-              <button className="btn" onClick={() => { onLogin(pinInput); setPinInput(""); }}>Login</button>
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="flex gap-2 items-center flex-wrap">
-          <input
-            className="input input-sm"
-            placeholder="Set new PIN (4+ digits)"
-            value={newPin}
-            onChange={(e) => setNewPin(e.target.value.replace(/[^0-9]/g, ""))}
-          />
-          <button className="btn" onClick={() => { onSetPin(newPin); setNewPin(""); }}>Set PIN</button>
-          <span className="text-xs opacity-70">(This PIN stays only on this device)</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -141,9 +51,12 @@ function Styles() {
         .text-slate-900 { color: #0f172a; }
         .bg-white { background-color: #ffffff; }
         .text-slate-500 { color: #64748b; }
+        .text-slate-600 { color: #475569; }
         .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
         .text-xs { font-size: 0.75rem; line-height: 1rem; }
+        .text-base { font-size: 1rem; line-height: 1.5rem; }
         .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+        .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
         .text-2xl { font-size: 1.5rem; line-height: 2rem; }
         @media (min-width: 768px) {
           .md\:text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
@@ -163,6 +76,9 @@ function Styles() {
         .text-center { text-align: center; }
         .text-left { text-align: left !important; }
         .w-full { width: 100%; }
+        .w-20 { width: 5rem; }
+        .w-32 { width: 8rem; }
+        .w-40 { width: 10rem; }
         .mx-auto { margin-left: auto; margin-right: auto; }
         .cursor-pointer { cursor: pointer; }
         .overflow-auto { overflow: auto; }
@@ -183,6 +99,7 @@ function Styles() {
         .gap-6 { gap: 1.5rem; }
         .rounded-lg { border-radius: 0.5rem; }
         .rounded-xl { border-radius: 0.75rem; }
+        .rounded-2xl { border-radius: 1.25rem; }
         .border { border: 1px solid #e2e8f0; }
         .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -227,8 +144,6 @@ function Styles() {
         .slot input[type="checkbox"] { width:0.85rem; height:0.85rem; }
         .win { box-shadow:0 0 0 2px rgba(22,163,74,0.35); border-color:#16a34a; }
         .slot .text-sm { font-weight: 600; }
-        .card { background:#fff; border:1px solid #e2e8f0; border-radius:1rem; padding:1rem; box-shadow:0 24px 60px rgba(15,23,42,.08); backdrop-filter: blur(6px); }
-        .card h3 { margin:0 0 .5rem 0; font-size:1.05rem }
         .muted { color:#64748b; font-size:0.9rem }
         .kckStyle { font: inherit }
         .kckStyle2 { font: inherit }
@@ -248,7 +163,7 @@ function Styles() {
 
 export function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="card">
+    <div className="ssg-card">
       <h3 className="font-semibold">{title}</h3>
       {children}
     </div>
