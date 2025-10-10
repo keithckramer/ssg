@@ -1,34 +1,89 @@
 "use client";
-import { useState } from "react";
-import { api } from "@/lib/api";
+
+import { FormEvent, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import styles from "../auth.module.css";
+import { useAuth } from "@/context/AuthContext";
 
 export default function RegisterPage() {
-  const [emailOrPhone, setId] = useState("");
-  const [password, setPw] = useState("");
-  const [token, setToken] = useState(""); // invite token (optional UI)
-  const [msg, setMsg] = useState("");
+  const { login } = useAuth();
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
+  const [isSubmitting, setSubmitting] = useState(false);
 
-  async function submit(e: any) {
-    e.preventDefault();
-    try {
-      const res = await api("/auth/register", {
-        method: "POST",
-        body: JSON.stringify({ emailOrPhone, password, token }),
-      });
-      localStorage.setItem("jwt", res.token);
-      setMsg("Registered. Token saved.");
-    } catch (e: any) {
-      setMsg(e.message);
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setMessage(null);
+
+    if (!name.trim() || !email.trim()) {
+      setMessage({ type: "error", text: "Name and email are required." });
+      return;
     }
-  }
+
+    setSubmitting(true);
+    try {
+      login(email, name);
+      setMessage({ type: "success", text: "Welcome aboard! Redirecting…" });
+      router.push("/me");
+    } catch (error) {
+      setMessage({ type: "error", text: error instanceof Error ? error.message : "Registration failed" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
-    <form onSubmit={submit} style={{ display: "grid", gap: 8, maxWidth: 360, padding: 16 }}>
-      <input placeholder="email or phone" value={emailOrPhone} onChange={e => setId(e.target.value)} />
-      <input placeholder="password" type="password" value={password} onChange={e => setPw(e.target.value)} />
-      <input placeholder="invite token (optional)" value={token} onChange={e => setToken(e.target.value)} />
-      <button type="submit">Register</button>
-      <div>{msg}</div>
-    </form>
+    <div className={styles.page}>
+      <div className={styles.heading}>
+        <h1 className={styles.title}>Create your account</h1>
+        <p className={styles.subtitle}>A name and email is all you need to start managing your stick games.</p>
+      </div>
+
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <label className={styles.label} htmlFor="name">
+          Name
+          <input
+            id="name"
+            type="text"
+            autoComplete="name"
+            className={styles.input}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Jordan Stickhandler"
+            required
+          />
+        </label>
+
+        <label className={styles.label} htmlFor="email">
+          Email
+          <input
+            id="email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            className={styles.input}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@example.com"
+            required
+          />
+        </label>
+
+        <button type="submit" className={styles.submit} disabled={isSubmitting}>
+          {isSubmitting ? "Creating account…" : "Register"}
+        </button>
+      </form>
+
+      {message ? (
+        <p className={message.type === "error" ? styles.error : styles.success}>{message.text}</p>
+      ) : null}
+
+      <p className={styles.linkRow}>
+        Already have an account? <Link href="/login">Log in</Link>.
+      </p>
+    </div>
   );
 }
