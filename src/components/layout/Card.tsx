@@ -7,7 +7,7 @@ type CardProps = {
 
 export function Card({ title, children }: CardProps) {
   return (
-    <div className="card">
+    <div className="ssg-card">
       <h3 className="font-semibold">{title}</h3>
       {children}
     </div>

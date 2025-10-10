@@ -4,7 +4,7 @@ export type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   isInvalid?: boolean;
 };
 
-const baseClassName = "form-input";
+const baseClassName = "ssg-input";
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className = "", isInvalid, ...props }, ref) => {
