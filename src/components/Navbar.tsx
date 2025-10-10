@@ -9,14 +9,6 @@ import styles from "./Navbar.module.css";
 import { useAuth } from "@/context/AuthContext";
 import { getInitials } from "@/lib/ui";
 
-const NAV_ITEMS = [
-  { href: "/", label: "Home" },
-  { href: "/admin", label: "Admin" },
-  { href: "/login", label: "Login" },
-  { href: "/register", label: "Register" },
-  { href: "/me", label: "Me" },
-];
-
 export default function Navbar() {
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -106,6 +98,23 @@ export default function Navbar() {
     router.push("/");
   }, [logout, closeMenu, closeMobile, router]);
 
+  const navItems = useMemo(() => {
+    const items = [{ href: "/", label: "Home" }];
+
+    if (user?.role === "admin") {
+      items.push({ href: "/admin", label: "Admin" });
+    }
+
+    if (user) {
+      items.push({ href: "/me", label: "Me" });
+    } else {
+      items.push({ href: "/login", label: "Login" });
+      items.push({ href: "/register", label: "Register" });
+    }
+
+    return items;
+  }, [user]);
+
   const avatar = useMemo(() => {
     if (!user) return null;
     if (user.image) {
@@ -151,7 +160,7 @@ export default function Navbar() {
           aria-label="Primary"
         >
           <ul className={styles.navList}>
-            {NAV_ITEMS.map(({ href, label }) => (
+            {navItems.map(({ href, label }) => (
               <li key={href}>
                 <NavLink href={href} onNavigate={closeMobile}>
                   {label}
