@@ -35,6 +35,24 @@ a {
   text-decoration: none;
 }
 
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1;
+  width: 100%;
+  padding: 1.5rem 1rem 2.5rem;
+}
+
+@media (min-width: 768px) {
+  .app-main {
+    padding: 2rem 2rem 3rem;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
