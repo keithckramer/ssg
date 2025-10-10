@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { MatchupPicker } from "@/components/matchups/MatchupPicker";
 import { useSportsSticks } from "@/components/providers/SportsSticksProvider";
+import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/context/AuthContext";
 
 import styles from "./admin.module.css";
@@ -133,8 +134,7 @@ export default function AdminPage() {
           <div className={styles.fieldRow}>
             <label className={styles.field}>
               <span>Home team</span>
-              <input
-                className={styles.input}
+              <Input
                 value={homeTeam}
                 onChange={(event) => setHomeTeam(event.target.value)}
                 placeholder="Home team"
@@ -142,8 +142,7 @@ export default function AdminPage() {
             </label>
             <label className={styles.field}>
               <span>Away team</span>
-              <input
-                className={styles.input}
+              <Input
                 value={awayTeam}
                 onChange={(event) => setAwayTeam(event.target.value)}
                 placeholder="Away team"
@@ -152,9 +151,8 @@ export default function AdminPage() {
           </div>
           <label className={`${styles.field} ${styles.fullWidth}`}>
             <span>Kickoff</span>
-            <input
+            <Input
               type="datetime-local"
-              className={styles.input}
               value={kickoff}
               onChange={(event) => setKickoff(event.target.value)}
             />

@@ -24,6 +24,51 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.form-input {
+  width: 100%;
+  appearance: none;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(255, 255, 255, 0.97);
+  color: rgba(15, 23, 42, 0.92);
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.form-input::placeholder {
+  color: rgba(100, 116, 139, 0.7);
+}
+
+.form-input:hover:not(:disabled) {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.99);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18), 0 16px 32px rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+}
+
+.form-input:focus-visible {
+  outline: none;
+}
+
+.form-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.form-input--invalid {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15), 0 14px 28px rgba(220, 38, 38, 0.08);
+}
+
 * {
   box-sizing: border-box;
   padding: 0;

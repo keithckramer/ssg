@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styles from "../auth.module.css";
+import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
@@ -43,12 +44,11 @@ export default function LoginPage() {
       <form className={styles.form} onSubmit={handleSubmit}>
         <label className={styles.label} htmlFor="email">
           Email
-          <input
+          <Input
             id="email"
             type="email"
             inputMode="email"
             autoComplete="email"
-            className={styles.input}
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="you@example.com"
