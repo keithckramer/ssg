@@ -20,6 +20,15 @@
     "paths": {
       "@/*": [
         "src/*"
+      ],
+      "react-hook-form": [
+        "src/vendor/react-hook-form"
+      ],
+      "@hookform/resolvers/zod": [
+        "src/vendor/hookform-resolvers/zod"
+      ],
+      "zod": [
+        "src/vendor/zod"
       ]
     },
     "incremental": true,
