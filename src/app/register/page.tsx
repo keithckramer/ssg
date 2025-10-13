@@ -13,7 +13,6 @@ import { PasswordStrength } from "@/components/forms/PasswordStrength";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient, ApiError } from "@/lib/apiClient";
-import { setAccessToken } from "@/lib/authClient";
 import { trackEvent } from "@/lib/analytics";
 import type { User } from "@/types/user";
 
@@ -38,7 +37,7 @@ type SummaryItem = {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { setUser, refreshUser } = useAuth();
+  const { login } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [focusSummary, setFocusSummary] = useState(false);
@@ -104,14 +103,10 @@ export default function RegisterPage() {
           skipAuth: true,
         });
 
-        if (response?.accessToken) {
-          setAccessToken(response.accessToken);
-        }
-
-        const account = response?.user ?? (await refreshUser());
-        if (account) {
-          setUser(account);
-        }
+        const account = await login({
+          accessToken: response?.accessToken ?? null,
+          user: response?.user,
+        });
 
         trackEvent("register_completed", {
           email: (response?.user ?? account)?.email ?? values.email,

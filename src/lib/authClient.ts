@@ -4,11 +4,21 @@ type RefreshOptions = {
   signal?: AbortSignal;
 };
 
+type AccessTokenListener = (token: string | null) => void;
+
 let accessToken: string | null = null;
 let refreshPromise: Promise<string | null> | null = null;
+const accessTokenListeners = new Set<AccessTokenListener>();
+
+function notifyAccessTokenChange() {
+  for (const listener of accessTokenListeners) {
+    listener(accessToken);
+  }
+}
 
 export function setAccessToken(token: string | null) {
   accessToken = token ?? null;
+  notifyAccessTokenChange();
 }
 
 export function getAccessToken() {
@@ -17,6 +27,14 @@ export function getAccessToken() {
 
 export function clearAccessToken() {
   accessToken = null;
+  notifyAccessTokenChange();
+}
+
+export function subscribeToAccessToken(listener: AccessTokenListener) {
+  accessTokenListeners.add(listener);
+  return () => {
+    accessTokenListeners.delete(listener);
+  };
 }
 
 export async function ensureAccessToken(options: RefreshOptions = {}) {

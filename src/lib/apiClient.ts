@@ -1,8 +1,9 @@
 import { API_BASE_URL } from "./config";
-import { clearAccessToken, getAccessToken, refreshAccessToken } from "./authClient";
+import { fetchWithAuth } from "./fetchWithAuth";
 
 export type ApiRequestOptions = RequestInit & {
   skipAuth?: boolean;
+  onUnauthorized?: () => void;
 };
 
 export type ApiErrorPayload = {
@@ -56,10 +57,6 @@ async function parseResponseBody<T>(response: Response): Promise<T | null> {
   return (await response.json()) as T;
 }
 
-async function executeRequest(path: string, init: RequestInit) {
-  return fetch(`${API_BASE_URL}${path}`, init);
-}
-
 async function handleResponse<T>(response: Response): Promise<T> {
   const data = await parseResponseBody<T | ApiErrorPayload | null>(response);
 
@@ -88,7 +85,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export async function apiClient<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  const { skipAuth, headers, ...rest } = options;
+  const { skipAuth, onUnauthorized, headers, ...rest } = options;
   const finalHeaders = new Headers(headers);
 
   const isFormData = rest.body instanceof FormData;
@@ -102,24 +99,10 @@ export async function apiClient<T>(path: string, options: ApiRequestOptions = {}
     credentials: "include",
   };
 
-  if (!skipAuth) {
-    const token = getAccessToken();
-    if (token) {
-      finalHeaders.set("Authorization", `Bearer ${token}`);
-    }
-  }
-
-  let response = await executeRequest(path, requestInit);
-
-  if (response.status === 401 && !skipAuth) {
-    const refreshed = await refreshAccessToken().catch(() => null);
-    if (refreshed) {
-      finalHeaders.set("Authorization", `Bearer ${refreshed}`);
-      response = await executeRequest(path, requestInit);
-    } else {
-      clearAccessToken();
-    }
-  }
+  const response = await fetchWithAuth(`${API_BASE_URL}${path}`, requestInit, {
+    skipAuth,
+    onUnauthorized,
+  });
 
   return handleResponse<T>(response);
 }
