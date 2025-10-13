@@ -7,10 +7,12 @@ import Logo from "./Logo";
 import NavLink from "./NavLink";
 import styles from "./Navbar.module.css";
 import { useAuth } from "@/context/AuthContext";
+import { feature } from "@/lib/features";
 import { getInitials } from "@/lib/ui";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const isAuthEnabled = feature.auth;
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -101,6 +103,10 @@ export default function Navbar() {
   const navItems = useMemo(() => {
     const items = [{ href: "/", label: "Home" }];
 
+    if (!isAuthEnabled) {
+      return items;
+    }
+
     if (user?.role === "admin") {
       items.push({ href: "/admin", label: "Admin" });
     }
@@ -113,7 +119,7 @@ export default function Navbar() {
     }
 
     return items;
-  }, [user]);
+  }, [isAuthEnabled, user]);
 
   const avatar = useMemo(() => {
     if (!user) return null;
@@ -171,68 +177,70 @@ export default function Navbar() {
         </nav>
 
         <div className={styles.actions}>
-          {user ? (
-            <>
-              <button
-                type="button"
-                className={styles.avatarButton}
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                aria-controls="user-menu"
-                onClick={() => setMenuOpen((open) => !open)}
-                ref={menuButtonRef}
-              >
-                <span className={styles.avatar} aria-hidden="true">
-                  {avatar}
-                </span>
-                <span className={styles.srOnly}>Open account menu</span>
-              </button>
-              <div
-                id="user-menu"
-                className={`${styles.menu} ${menuOpen ? styles.menuOpen : ""}`}
-                role="menu"
-                ref={menuRef}
-              >
-                <div className={styles.menuHeader}>
-                  <div className={styles.menuName}>{user.name}</div>
-                  <div className={styles.menuEmail}>{user.email}</div>
-                  {user.role ? <span className={styles.roleTag}>{user.role}</span> : null}
+          {isAuthEnabled ? (
+            user ? (
+              <>
+                <button
+                  type="button"
+                  className={styles.avatarButton}
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  aria-controls="user-menu"
+                  onClick={() => setMenuOpen((open) => !open)}
+                  ref={menuButtonRef}
+                >
+                  <span className={styles.avatar} aria-hidden="true">
+                    {avatar}
+                  </span>
+                  <span className={styles.srOnly}>Open account menu</span>
+                </button>
+                <div
+                  id="user-menu"
+                  className={`${styles.menu} ${menuOpen ? styles.menuOpen : ""}`}
+                  role="menu"
+                  ref={menuRef}
+                >
+                  <div className={styles.menuHeader}>
+                    <div className={styles.menuName}>{user.name}</div>
+                    <div className={styles.menuEmail}>{user.email}</div>
+                    {user.role ? <span className={styles.roleTag}>{user.role}</span> : null}
+                  </div>
+                  <div className={styles.menuList}>
+                    <Link
+                      href="/me"
+                      className={`${styles.menuItem} ${styles.menuLink}`}
+                      role="menuitem"
+                      tabIndex={menuOpen ? 0 : -1}
+                      onClick={() => {
+                        closeMenu();
+                        closeMobile();
+                      }}
+                    >
+                      Profile
+                    </Link>
+                    <div className={styles.menuDivider} aria-hidden="true" />
+                    <button
+                      type="button"
+                      className={styles.menuItem}
+                      role="menuitem"
+                      onClick={handleLogout}
+                    >
+                      Logout
+                    </button>
+                  </div>
                 </div>
-                <div className={styles.menuList}>
-                  <Link
-                    href="/me"
-                    className={`${styles.menuItem} ${styles.menuLink}`}
-                    role="menuitem"
-                    tabIndex={menuOpen ? 0 : -1}
-                    onClick={() => {
-                      closeMenu();
-                      closeMobile();
-                    }}
-                  >
-                    Profile
-                  </Link>
-                  <div className={styles.menuDivider} aria-hidden="true" />
-                  <button
-                    type="button"
-                    className={styles.menuItem}
-                    role="menuitem"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </button>
-                </div>
+              </>
+            ) : (
+              <div className={styles.authLinks}>
+                <Link href="/login" className={styles.authButton} onClick={closeMobile}>
+                  Log In
+                </Link>
+                <Link href="/register" className={styles.authButton} onClick={closeMobile}>
+                  Register
+                </Link>
               </div>
-            </>
-          ) : (
-            <div className={styles.authLinks}>
-              <Link href="/login" className={styles.authButton} onClick={closeMobile}>
-                Log In
-              </Link>
-              <Link href="/register" className={styles.authButton} onClick={closeMobile}>
-                Register
-              </Link>
-            </div>
-          )}
+            )
+          ) : null}
         </div>
       </div>
     </header>
