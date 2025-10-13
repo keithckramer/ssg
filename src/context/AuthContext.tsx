@@ -9,56 +9,83 @@ import {
   useRef,
   useState,
 } from "react";
-import { getStoredUser, loginMock, logout as logoutUser, USER_STORAGE_KEY, type User } from "@/lib/auth";
+
+import { apiClient } from "@/lib/apiClient";
+import { clearAccessToken, ensureAccessToken } from "@/lib/authClient";
+import type { User } from "@/types/user";
 
 export type AuthContextValue = {
   user: User | null;
-  login: (email: string, name?: string) => User;
-  logout: () => void;
+  setUser: (user: User | null) => void;
+  refreshUser: () => Promise<User | null>;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    if (typeof window === "undefined") return null;
-    return getStoredUser();
-  });
+async function fetchCurrentUser() {
+  const response = await apiClient<{ user?: User } | User>("/auth/me");
+  if ("user" in response && response.user) {
+    return response.user;
+  }
+  return response as User;
+}
 
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUserState] = useState<User | null>(null);
   const isInitialised = useRef(false);
+
+  const setUser = useCallback((next: User | null) => {
+    setUserState(next);
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const token = await ensureAccessToken();
+      if (!token) {
+        setUserState(null);
+        return null;
+      }
+
+      const account = await fetchCurrentUser();
+      setUserState(account);
+      return account;
+    } catch (error) {
+      clearAccessToken();
+      setUserState(null);
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
     if (isInitialised.current) return;
-    const stored = getStoredUser();
-    setUser(stored);
     isInitialised.current = true;
+
+    refreshUser().catch(() => {
+      setUserState(null);
+    });
+  }, [refreshUser]);
+
+  const logout = useCallback(async () => {
+    try {
+      await apiClient("/auth/logout", { method: "POST" });
+    } catch (error) {
+      // Ignore errors during logout to avoid blocking the UI
+    } finally {
+      clearAccessToken();
+      setUserState(null);
+    }
   }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === USER_STORAGE_KEY) {
-        setUser(getStoredUser());
-      }
-    };
-
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
-  }, []);
-
-  const login = useCallback((email: string, name?: string) => {
-    const nextUser = loginMock(email, name);
-    setUser(nextUser);
-    return nextUser;
-  }, []);
-
-  const logout = useCallback(() => {
-    logoutUser();
-    setUser(null);
-  }, []);
-
-  const value = useMemo<AuthContextValue>(() => ({ user, login, logout }), [user, login, logout]);
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      setUser,
+      refreshUser,
+      logout,
+    }),
+    [user, setUser, refreshUser, logout],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
